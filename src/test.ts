@@ -1,23 +1,4 @@
-### packer
-
-Simple dependency injector container.
-
-###### instalation
-
-``
-npm  install @berhalak/packer
-``
-``
-yarn add @berhalak/packer
-``
-
-
-#### Sample
-
-Also see src/test.ts
-
-```javascript
-import { Packer } from '@berhalak/packer';
+import { Packer } from ".";
 
 class Upper {
     data: { text: string };
@@ -46,4 +27,3 @@ if (unser.toString() != "LOWER") {
 }
 
 console.log("Test passed");
-```
