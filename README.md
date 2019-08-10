@@ -1,14 +1,14 @@
 ### packer
 
-Simple dependency injector container.
+Javascript serialization with prototype marker.
 
 ###### instalation
 
 ``
-npm  install @berhalak/packer
+npm install packer-js
 ``
 ``
-yarn add @berhalak/packer
+yarn add packer-js
 ``
 
 
@@ -17,7 +17,7 @@ yarn add @berhalak/packer
 Also see src/test.ts
 
 ```javascript
-import { Packer } from '@berhalak/packer';
+import { Packer } from 'packer-js';
 
 class Upper {
     data: { text: string };

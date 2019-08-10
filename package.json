@@ -1,8 +1,9 @@
 {
-  "name": "@berhalak/packer",
-  "version": "1.0.0",
+  "name": "packer-js",
+  "version": "1.0.1",
   "description": "Javascript object serializer",
   "main": "dist/index.js",
+  "private": false,
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "ts-node src/test.ts",

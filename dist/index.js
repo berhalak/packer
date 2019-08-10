@@ -1,69 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const type_indicator_default = "$type";
+const unpack_hook = 'unpacked';
 class Packer {
-    static fillNames(aModel, aJs) {
-        for (let key of Object.keys(aModel)) {
-            let value = aModel[key];
-            if (value != null) {
-                let primType = typeof (value);
-                if (primType == 'object') {
-                    let constructor = Reflect.getPrototypeOf(value).constructor;
-                    let type = constructor.name;
-                    if (type != 'Date') {
-                        if (type != 'Array' && type != 'Object') {
-                            type = Packer.registerSafe(constructor, false);
-                            aJs[key][Packer.currentType] = type;
-                        }
-                        Packer.fillNames(aModel[key], aJs[key]);
-                    }
-                    else {
-                        aJs[key] = {
-                            value: aJs[key],
-                            [Packer.currentType]: 'Date'
-                        };
-                    }
-                }
-                else {
-                }
-            }
+    static pack(model, typeSelector = type_indicator_default) {
+        if (typeof model != 'object') {
+            throw "Packer works only on objects";
         }
-        let constructor = Reflect.getPrototypeOf(aModel).constructor;
-        let type = constructor.name;
-        if (type != 'Array') {
-            aJs[Packer.currentType] = Packer.registerSafe(aModel.constructor, false);
-        }
+        Packer.type_indicator = typeSelector;
+        let js = JSON.parse(JSON.stringify(model));
+        Packer.updateTypeInfo(model, js);
+        return js;
     }
-    static fillProtos(js) {
-        for (let key in js) {
-            let value = js[key];
-            if (value === null || value === undefined)
-                continue;
-            if (typeof (value) == 'object') {
-                let type = value[Packer.currentType];
-                if (type == 'Date') {
-                    js[key] = new Date(value.value);
-                }
-                else {
-                    Packer.fillProtos(value);
-                }
-            }
+    static unpack(model, typeSelector = type_indicator_default) {
+        Packer.type_indicator = typeSelector;
+        let js = Packer.updatePrototypes(model);
+        return js;
+    }
+    static serialize(model, typeSelector = type_indicator_default) {
+        if (typeof model != 'object') {
+            throw "Can't serialize primitive types";
         }
-        if (js.constructor.name != 'Array') {
-            let type = js[Packer.currentType];
-            if (type && type != 'Object') {
-                var proto = Packer.map[type];
-                if (!proto) {
-                    console.warn("Can't deserialize object " + type + " " + JSON.stringify(js));
-                }
-                else {
-                    Object.setPrototypeOf(js, proto);
-                    if (Packer.onDeserializeHandler in js) {
-                        js[Packer.onDeserializeHandler]();
-                    }
-                    delete js[Packer.currentType];
-                }
-            }
-        }
+        Packer.type_indicator = typeSelector;
+        let js = JSON.parse(JSON.stringify(model));
+        Packer.updateTypeInfo(model, js);
+        return JSON.stringify(js);
+    }
+    static deserialize(packed, typeSelector = type_indicator_default) {
+        Packer.type_indicator = typeSelector;
+        let js = Packer.updatePrototypes(JSON.parse(packed));
         return js;
     }
     static register(...constructor) {
@@ -80,8 +45,8 @@ class Packer {
         }
         let fullName = constructor.fullName;
         if (fullName) {
-            if (!(fullName in Packer.map)) {
-                Packer.map[fullName] = constructor.prototype;
+            if (!(fullName in Packer.cache)) {
+                Packer.cache[fullName] = constructor.prototype;
             }
             else if (warn) {
                 console.warn("Trying to register the same name " + fullName);
@@ -93,54 +58,89 @@ class Packer {
             if (!name) {
                 return name;
             }
-            if (name in Packer.map) {
+            if (name in Packer.cache) {
                 if (warn) {
                     console.warn("Trying to register the same name " + name);
                 }
                 return name;
             }
-            Packer.map[constructor.name] = constructor.prototype;
+            Packer.cache[constructor.name] = constructor.prototype;
             return constructor.name;
         }
     }
-    static serialize(model, typeSelector = Packer.defaultTypeSelector) {
-        if (typeof model != 'object') {
-            throw "Can't serialize primitive types";
+    static updateTypeInfo(aModel, aJs) {
+        for (let key of Object.keys(aModel)) {
+            let value = aModel[key];
+            if (value != null) {
+                let primType = typeof (value);
+                if (primType == 'object') {
+                    let constructor = Reflect.getPrototypeOf(value).constructor;
+                    let type = constructor.name;
+                    if (type != 'Date') {
+                        if (type != 'Array' && type != 'Object') {
+                            type = Packer.registerSafe(constructor, false);
+                            aJs[key][Packer.type_indicator] = type;
+                        }
+                        Packer.updateTypeInfo(aModel[key], aJs[key]);
+                    }
+                    else {
+                        aJs[key] = {
+                            value: aJs[key],
+                            [Packer.type_indicator]: 'Date'
+                        };
+                    }
+                }
+                else {
+                }
+            }
         }
-        Packer.currentType = typeSelector;
-        let js = JSON.parse(JSON.stringify(model));
-        Packer.fillNames(model, js);
-        return JSON.stringify(js);
-    }
-    static pack(model, typeSelector = Packer.defaultTypeSelector) {
-        if (typeof model != 'object') {
-            throw "Can't serialize primitive types";
+        let constructor = Reflect.getPrototypeOf(aModel).constructor;
+        let type = constructor.name;
+        if (type != 'Array') {
+            aJs[Packer.type_indicator] = Packer.registerSafe(aModel.constructor, false);
         }
-        Packer.currentType = typeSelector;
-        let js = JSON.parse(JSON.stringify(model));
-        Packer.fillNames(model, js);
-        return js;
     }
-    static deserialize(packed, typeSelector = Packer.defaultTypeSelector) {
-        Packer.currentType = typeSelector;
-        let js = Packer.fillProtos(JSON.parse(packed));
-        return js;
-    }
-    static unpack(model, typeSelector = Packer.defaultTypeSelector) {
-        Packer.currentType = typeSelector;
-        let js = Packer.fillProtos(model);
+    static updatePrototypes(js) {
+        for (let key in js) {
+            let value = js[key];
+            if (value === null || value === undefined)
+                continue;
+            if (typeof (value) == 'object') {
+                let type = value[Packer.type_indicator];
+                if (type == 'Date') {
+                    js[key] = new Date(value.value);
+                }
+                else {
+                    Packer.updatePrototypes(value);
+                }
+            }
+        }
+        if (js.constructor.name != 'Array') {
+            let type = js[Packer.type_indicator];
+            if (type && type != 'Object') {
+                var proto = Packer.cache[type];
+                if (!proto) {
+                    console.warn("Can't deserialize object " + type + " " + JSON.stringify(js));
+                }
+                else {
+                    Object.setPrototypeOf(js, proto);
+                    if (unpack_hook in js && typeof js[unpack_hook] == 'function') {
+                        js[unpack_hook]();
+                    }
+                    delete js[Packer.type_indicator];
+                }
+            }
+        }
         return js;
     }
     static unpackSafe(model) {
-        if (!model[Packer.defaultTypeSelector])
+        if (!model[type_indicator_default])
             return;
-        let js = Packer.fillProtos(model);
+        let js = Packer.updatePrototypes(model);
         return js;
     }
 }
-Packer.map = {};
-Packer.defaultTypeSelector = "$type";
-Packer.currentType = "$type";
-Packer.onDeserializeHandler = 'onDeserialize';
+Packer.cache = {};
+Packer.type_indicator = "$type";
 exports.Packer = Packer;
 //# sourceMappingURL=index.js.map

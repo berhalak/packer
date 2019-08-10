@@ -1,31 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const _1 = require(".");
-class Name {
-    constructor(name) {
-        this.name = name;
+class Upper {
+    constructor(text) {
+        this.data = {
+            text
+        };
     }
-    print() {
-        console.log(this.name);
-    }
-    id() {
-        return this.name;
-    }
-}
-let john = new Name("john");
-let names = [john];
-class Person {
-    constructor(...names) {
-        this.names = names;
-    }
-    hello() {
-        console.log("Hello, my name is " + this.names.map(x => x.id()).join(", "));
+    toString() {
+        return this.data.text.toUpperCase();
     }
 }
-let king = new Person(new Name("Richard"), new Name("Bob"));
-_1.Packer.register(Name, Person);
-let packed = _1.Packer.pack(king);
-console.log(packed);
-let unpacked = _1.Packer.unpack(packed);
-unpacked.hello();
+_1.Packer.register(Upper);
+const unpacked = _1.Packer.unpack(_1.Packer.pack(new Upper("lower")));
+if (unpacked.toString() != "LOWER") {
+    throw new Error("Test failed");
+}
+const unser = _1.Packer.deserialize(_1.Packer.serialize(new Upper("lower")));
+if (unser.toString() != "LOWER") {
+    throw new Error("Test failed");
+}
+console.log("Test passed");
 //# sourceMappingURL=test.js.map
