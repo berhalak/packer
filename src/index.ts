@@ -149,9 +149,9 @@ export class Packer {
                     if (unpack_hook in js && typeof js[unpack_hook] == 'function') {
                         js[unpack_hook]();
                     }
-                    delete js[Packer.type_indicator];
                 }
             }
+            delete js[Packer.type_indicator];
         }
         return js;
     }
