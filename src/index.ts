@@ -11,8 +11,14 @@ export class Packer {
             throw "Packer works only on objects";
         }
         Packer.type_indicator = typeSelector;
+        if (!model[typeSelector]) {
+            // don't pack twice
+            return model;
+        }
+
         let js = JSON.parse(JSON.stringify(model));
         Packer.updateTypeInfo(model, js);
+
         return js;
     }
 
