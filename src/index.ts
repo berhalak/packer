@@ -11,7 +11,7 @@ export class Packer {
             throw "Packer works only on objects";
         }
         Packer.type_indicator = typeSelector;
-        if (!model[typeSelector]) {
+        if (model[typeSelector]) {
             // don't pack twice
             return model;
         }
