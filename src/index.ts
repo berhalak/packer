@@ -1,6 +1,12 @@
 const type_indicator_default = "$type";
 const unpack_hook = 'unpacked';
 
+export function pack(type: string) {
+    return function (target: any) {
+        target[type_indicator_default] = type;
+    }
+}
+
 export class Packer {
 
     private static cache: any = {}
@@ -25,7 +31,7 @@ export class Packer {
 
     public static unpack<T>(model: object, typeSelector: string = type_indicator_default): T {
         Packer.type_indicator = typeSelector;
-        let js = Packer.updatePrototypes(model);
+        let js = Packer.updatePrototypes(JSON.parse(JSON.stringify(model)));
         return <T>js;
     }
 
@@ -62,7 +68,7 @@ export class Packer {
             }
         }
 
-        let fullName = (<any>constructor).fullName;
+        let fullName = (<any>constructor)[type_indicator_default];
         if (fullName) {
             if (!(fullName in Packer.cache)) {
                 Packer.cache[fullName] = constructor.prototype;

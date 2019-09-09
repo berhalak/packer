@@ -1,4 +1,4 @@
-import { Packer } from ".";
+import { Packer, pack } from ".";
 
 class Upper {
     data: { text: string };
@@ -25,5 +25,33 @@ const unser = Packer.deserialize<Upper>(Packer.serialize(new Upper("lower")))
 if (unser.toString() != "LOWER") {
     throw new Error("Test failed")
 }
+
+@pack("version1")
+class Version1 {
+    constructor(private name: string) {
+
+    }
+    say() {
+        return "Hello " + this.name;
+    }
+}
+
+let v1 = new Version1("John");
+
+let packed_v1 = Packer.pack(v1);
+
+let unpacked_v1 = Packer.unpack<Version1>(packed_v1);
+
+const hello_v1 = unpacked_v1.say();
+
+if (hello_v1 != "Hello John") {
+    throw new Error("Test failed");
+}
+
+if (packed_v1['$type'] != "version1") {
+    throw new Error("Test failed");
+}
+
+
 
 console.log("Test passed");

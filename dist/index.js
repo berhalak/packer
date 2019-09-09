@@ -2,6 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const type_indicator_default = "$type";
 const unpack_hook = 'unpacked';
+function pack(type) {
+    return function (target) {
+        target[type_indicator_default] = type;
+    };
+}
+exports.pack = pack;
 class Packer {
     static pack(model, typeSelector = type_indicator_default) {
         if (typeof model != 'object') {
@@ -18,7 +24,7 @@ class Packer {
     }
     static unpack(model, typeSelector = type_indicator_default) {
         Packer.type_indicator = typeSelector;
-        let js = Packer.updatePrototypes(model);
+        let js = Packer.updatePrototypes(JSON.parse(JSON.stringify(model)));
         return js;
     }
     static serialize(model, typeSelector = type_indicator_default) {
@@ -47,7 +53,7 @@ class Packer {
                 Packer.registerSafe(type);
             }
         }
-        let fullName = constructor.fullName;
+        let fullName = constructor[type_indicator_default];
         if (fullName) {
             if (!(fullName in Packer.cache)) {
                 Packer.cache[fullName] = constructor.prototype;
@@ -144,7 +150,7 @@ class Packer {
         return js;
     }
 }
+exports.Packer = Packer;
 Packer.cache = {};
 Packer.type_indicator = "$type";
-exports.Packer = Packer;
 //# sourceMappingURL=index.js.map

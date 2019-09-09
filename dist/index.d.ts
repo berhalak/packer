@@ -1,3 +1,4 @@
+export declare function pack(type: string): (target: any) => void;
 export declare class Packer {
     private static cache;
     private static type_indicator;
