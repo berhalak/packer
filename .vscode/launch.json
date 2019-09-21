@@ -17,7 +17,13 @@
 			"internalConsoleOptions": "openOnSessionStart",
 			"env": {
 				"TS_NODE_IGNORE": "false"
-			}
+			},
+			"smartStep": true,
+			"skipFiles": [
+				"<node_internals>/**/*.js",
+				"${workspaceFolder}/node_modules/**/*.js",
+				"${workspaceFolder}/lib/**/*.js"
+			]
 		}
 	]
 }
