@@ -92,9 +92,6 @@ export class Packer {
         }
     }
 
-
-
-
     private static updateTypeInfo(aModel: any, aJs: any) {
         for (let key of Object.keys(aModel)) {
             let value = aModel[key];
