@@ -1,8 +1,13 @@
 import { Packer } from "./Packer";
 
+type FilterFun = (x: any) => boolean;
+type Filter = string | FilterFun;
+
 export interface MemoPort {
     load(ref: string, type: string, id: string): Promise<any>;
     save(ref: string, type: string, id: string, obj: any): Promise<void>;
+    list(ref: string, type: string): Promise<any[]>;
+    find(ref: string, type: string, filter: Filter): Promise<any[]>;
     id(): string;
 }
 
@@ -137,6 +142,12 @@ export class Table {
 type Nullable<T> = T | null;
 
 class InMemory implements MemoPort {
+    list(ref: string, type: string): Promise<any[]> {
+        return Promise.resolve([]);
+    }
+    find(ref: string, type: string, filter: Filter): Promise<any[]> {
+        return Promise.resolve([]);
+    }
     db: any = {};
     load(ref: string, type: string, id: string): Promise<any> {
         let key = ref + "/" + type + "/" + id;
@@ -280,5 +291,16 @@ export class Memo {
         let data = await Memo.port.load(parent, type, id);
         if (data) data = Packer.unpack(data);
         return data;
+    }
+
+
+    public static async list(type: TypeLike): Promise<any[]> {
+        let data = await Memo.port.list('', typeName(type));
+        return data.map(x => Packer.unpack(x));
+    }
+
+    public static async find(type: TypeLike, filter: Filter): Promise<any[]> {
+        let data = await Memo.port.find('', typeName(type), filter);
+        return data.map(x => Packer.unpack(x));
     }
 }
