@@ -1,150 +1,247 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Packer_1 = require("./Packer");
+function ctype(ctr) {
+    if (ctr['$type']) {
+        let type = ctr['$type'];
+        type = type.split("#")[0];
+        return type;
+    }
+    else {
+        return ctr.name;
+    }
+}
+function typeName(typeLike) {
+    if (typeof typeLike == 'string') {
+        return typeLike;
+    }
+    return ctype(typeLike);
+}
+class Dict {
+    constructor(...args) {
+        let parent = args.length == 1 ? '' : args[0];
+        let name = args.length == 1 ? args[0] : args[1];
+        this.parent = (parent ? (typeof (parent) == 'string' ? parent : Memo.ref(parent)) : "") || "";
+        this.type = typeName(name);
+    }
+    async save(...args) {
+        let id = '';
+        let obj = null;
+        if (args.length == 1) {
+            obj = args[0];
+            id = Memo.id(obj) || Memo.port.id();
+        }
+        else {
+            id = args[0];
+            obj = args[1];
+        }
+        if (typeof obj == 'object') {
+        }
+        else {
+            obj = { _value: obj };
+        }
+        await Memo.port.save(this.parent, this.type, encodeURIComponent(id), Packer_1.Packer.pack(obj));
+    }
+    async get(id) {
+        let data = await Memo.port.load(this.parent, this.type, encodeURIComponent(id));
+        let unpacked = data ? Packer_1.Packer.unpack(data) : null;
+        if (unpacked && unpacked._value) {
+            return unpacked._value;
+        }
+        else {
+            if (unpacked && !unpacked.id) {
+                unpacked.id = id;
+            }
+            if (unpacked && Memo.type(unpacked) != this.type) {
+                unpacked.type = this.type;
+            }
+            if (unpacked && Memo.parent(unpacked) != this.parent && this.parent) {
+                unpacked.parent = this.parent;
+            }
+        }
+        return unpacked;
+    }
+}
+exports.Dict = Dict;
+class Table {
+    constructor(...args) {
+        if (args.length == 0) {
+            this.parent = '';
+            this.type = Object.name;
+        }
+        else {
+            let parent = args.length == 1 ? '' : args[0];
+            let name = args.length == 1 ? args[0] : args[1];
+            this.parent = (parent ? (typeof (parent) == 'string' ? parent : Memo.ref(parent)) : "") || "";
+            this.type = typeName(name);
+        }
+    }
+    async add(obj) {
+        return await this.save(obj);
+    }
+    async save(...args) {
+        let id = '';
+        let obj = null;
+        if (args.length == 1) {
+            obj = args[0];
+            id = Memo.id(obj) || Memo.port.id();
+        }
+        else {
+            id = args[0];
+            obj = args[1];
+        }
+        await Memo.port.save(this.parent, this.type, encodeURIComponent(id), Packer_1.Packer.pack(obj));
+        return id;
+    }
+    async get(id) {
+        let data = await Memo.port.load(this.parent, this.type, encodeURIComponent(id));
+        let unpacked = data ? Packer_1.Packer.unpack(data) : null;
+        if (unpacked && !unpacked.id) {
+            unpacked.id = id;
+        }
+        if (unpacked && Memo.type(unpacked) != this.type) {
+            unpacked.type = this.type;
+        }
+        if (unpacked && Memo.parent(unpacked) != this.parent && this.parent) {
+            unpacked.parent = this.parent;
+        }
+        return unpacked;
+    }
+}
+exports.Table = Table;
 class InMemory {
     constructor() {
         this.db = {};
     }
-    save(ref, obj) {
-        this.db[ref] = obj;
+    load(ref, type, id) {
+        let key = ref + "/" + type + "/" + id;
+        return Promise.resolve(this.db[key]);
+    }
+    save(ref, type, id, obj) {
+        let key = ref + "/" + type + "/" + id;
+        this.db[key] = obj;
         return Promise.resolve();
     }
-    read(ref) {
-        return Promise.resolve(this.db[ref]);
-    }
-    all(path) {
-        let result = [];
-        for (let key in this.db) {
-            if (key.startsWith(path)) {
-                let id = key.replace(path, "");
-                if (!id.includes("/")) {
-                    result.push(this.db[key]);
-                }
-            }
-        }
-        return Promise.resolve(result);
-    }
-    find(path, filter) {
-        return this.all(path);
+    id() {
+        return `id${InMemory._id++}`;
     }
 }
-exports.InMemory = InMemory;
+InMemory._id = 1;
 class Memo {
-    constructor(arg, type) {
-        if (arg) {
-            if (typeof arg == 'string') {
-                this.parentRef = arg;
-            }
-            else {
-                this.parentRef = Memo.ref(arg);
-            }
-            this.defaultType = type;
-        }
-    }
     static use(port) {
         Memo.port = port;
     }
-    static id(any) {
+    static id(obj) {
+        if (!obj) {
+            return null;
+        }
         let id = null;
-        if (!any) {
-            throw new Error();
+        if (typeof obj.id == 'function') {
+            id = obj.id();
         }
-        if (any.id && typeof any.id == 'function') {
-            id = any.id();
-        }
-        else if (any.id) {
-            id = any.id;
+        else if (obj.id) {
+            id = obj.id;
         }
         return id;
     }
-    static self(any) {
-        return Memo.parent(any) + "/" + Memo.type(any) + "/" + Memo.id(any);
+    static parent(obj) {
+        if (!obj)
+            return null;
+        if (typeof obj.parent == 'function')
+            return obj.parent();
+        if (typeof obj.parent == 'string')
+            return obj.parent;
+        return null;
     }
-    static ref(any) {
-        if (typeof any.ref == 'function') {
-            return any.ref();
+    static type(obj) {
+        if (!obj)
+            return null;
+        let type = "Object";
+        if (typeof obj.col == 'function') {
+            type = obj.col();
         }
-        return Memo.self(any);
+        else if (typeof obj.type == 'function') {
+            type = obj.type();
+        }
+        else if (typeof obj.type == 'string') {
+            type = obj.type;
+        }
+        else {
+            type = ctype(obj.constructor);
+        }
+        return type;
     }
-    static type(any) {
-        if (typeof any.type == 'function') {
-            return any.type();
+    static ref(obj) {
+        if (!obj) {
+            return null;
         }
+        if (typeof obj.ref == 'function')
+            return obj.ref();
+        if (obj.ref)
+            return obj.ref;
+        let id = Memo.id(obj);
+        let type = Memo.type(obj);
+        let parent = Memo.parent(obj);
+        let ref = `${parent}/${type}/${id}`;
+        return ref;
+    }
+    static async save(obj) {
+        let id = Memo.id(obj);
+        if (!id) {
+            id = Memo.port.id();
+            obj.id = id;
+        }
+        return await Memo.snap(obj);
+    }
+    static async snap(obj) {
+        let parent = Memo.parent(obj);
+        let type = Memo.type(obj);
+        let id = Memo.id(obj);
+        if (id === null || type === null) {
+            throw new Error("Can't snap objects without id or type");
+        }
+        parent = parent || "";
+        let packed = Packer_1.Packer.pack(obj);
+        let ref = `${parent}/${type}/${id}`;
+        await Memo.port.save(parent, type, encodeURIComponent(id), packed);
+        return ref;
+    }
+    static async load(...args) {
+        if (args.length == 1) {
+            return await Memo.loadByRef(args[0]);
+        }
+        else {
+            let type = typeName(args[0]);
+            let id = args[1];
+            return await Memo.loadByRef(`${type}/${encodeURIComponent(id)}`);
+        }
+    }
+    static async loadByRef(ref) {
+        let parent = '';
         let type = '';
-        if (any.constructor) {
-            if (any.constructor['$type']) {
-                type = any.constructor['$type'];
-            }
-            else {
-                type = any.constructor.name;
-            }
+        let id = '';
+        if (ref.startsWith('/')) {
+            let parts = ref.split('/');
+            parent = parts.slice(0, -2).join("/");
+            type = parts.slice(-2, -1).join('');
+            id = parts.slice(-1).join();
+        }
+        else if (ref.includes('/')) {
+            let parts = ref.split('/');
+            type = parts[0];
+            id = parts[1];
         }
         else {
-            type = any['$type'];
+            id = ref;
+            type = Object.name;
+            parent = '';
         }
-        if (!type) {
-            return "Object";
-        }
-        let parts = type.split("#");
-        return parts[0];
-    }
-    static attach(parent, child) {
-        child['$parent'] = Memo.ref(parent);
-        return child;
-    }
-    static parent(any) {
-        if (typeof any.parent == 'function') {
-            return any.parent();
-        }
-        if (any['$parent']) {
-            return any["$parent"];
-        }
-        return "";
-    }
-    static print(any) {
-        console.log("Id: " + Memo.id(any));
-        console.log("Type: " + Memo.type(any));
-        console.log("Parent ref: " + Memo.parent(any));
-        console.log("Ref: " + Memo.ref(any));
-    }
-    static save(obj) {
-        return Memo.current.save(obj);
-    }
-    static read(ref) {
-        return Memo.current.read(ref);
-    }
-    async read(refId) {
-        if (this.parentRef !== undefined) {
-            if (!refId.includes("/")) {
-                // it has only id
-                let proper = this.parentRef + "/" + (this.defaultType || "Object") + "/" + refId;
-                return await Memo.port.read(proper);
-            }
-            else {
-                let proper = this.parentRef + "/" + refId;
-                return await Memo.port.read(proper);
-            }
-        }
-        else {
-            if (!refId.startsWith("/")) {
-                return await Memo.port.read("/Object/" + refId);
-            }
-            return await Memo.port.read(refId);
-        }
-    }
-    async save(obj) {
-        if (this.parentRef !== undefined) {
-            let type = this.defaultType || Memo.type(obj);
-            let ref = this.parentRef + "/" + type + "/" + Memo.id(obj);
-            await Memo.port.save(ref, obj);
-            return ref;
-        }
-        else {
-            await Memo.port.save(Memo.ref(obj), obj);
-            return Memo.ref(obj);
-        }
+        let data = await Memo.port.load(parent, type, id);
+        if (data)
+            data = Packer_1.Packer.unpack(data);
+        return data;
     }
 }
 exports.Memo = Memo;
 Memo.port = new InMemory();
-Memo.current = new Memo();
 //# sourceMappingURL=Memo.js.map

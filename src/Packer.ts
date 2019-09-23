@@ -30,6 +30,9 @@ export class Packer {
 
 
     public static unpack<T>(model: object, typeSelector: string = type_indicator_default): T {
+        if (!model) {
+            return null as any;
+        }
         Packer.type_indicator = typeSelector;
         let js = Packer.updatePrototypes(JSON.parse(JSON.stringify(model)));
         return <T>js;
@@ -47,6 +50,9 @@ export class Packer {
     }
 
     public static deserialize<T>(packed: string, typeSelector: string = type_indicator_default): T {
+        if (!packed) {
+            return null as any;
+        }
         Packer.type_indicator = typeSelector;
         let js = Packer.updatePrototypes(JSON.parse(packed));
         return <T>js;

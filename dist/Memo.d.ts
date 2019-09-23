@@ -1,35 +1,45 @@
 export interface MemoPort {
-    save(ref: string, obj: any): Promise<void>;
-    read(ref: string): Promise<any>;
-    all(path: string): Promise<any[]>;
-    find(path: string, filter: string): Promise<any[]>;
+    load(ref: string, type: string, id: string): Promise<any>;
+    save(ref: string, type: string, id: string, obj: any): Promise<void>;
+    id(): string;
 }
-export declare class InMemory implements MemoPort {
-    db: any;
-    save(ref: string, obj: any): Promise<void>;
-    read(ref: string): Promise<any>;
-    all(path: string): Promise<any[]>;
-    find(path: string, filter: string): Promise<any[]>;
+declare type TypeLike = string | {
+    name: string;
+};
+export declare class Dict {
+    private parent;
+    private type;
+    constructor(parent: any, name: TypeLike);
+    constructor(name: TypeLike);
+    save(id: string, obj: any): Promise<void>;
+    get(id: string): Promise<any>;
 }
-export declare class Memo {
-    private static port;
-    static use(port: MemoPort): void;
-    static id(any: any): string;
-    static self(any: any): string;
-    static ref(any: any): string;
-    static type(any: any): string;
-    static attach<T>(parent: any, child: T): T;
-    static parent(any: any): string;
-    static print(any: any): void;
-    static current: Memo;
-    static save(obj: any): Promise<string>;
-    static read(ref: string): Promise<any>;
-    private parentRef;
-    private defaultType;
+export declare class Table {
+    private parent;
+    private type;
+    constructor(parent: any, name: TypeLike);
+    constructor(name: TypeLike);
     constructor();
-    constructor(obj: any, type?: string);
-    constructor(ref: string, type?: string);
-    read(refId: string): Promise<any>;
+    add(obj: any): Promise<string>;
     save(obj: any): Promise<string>;
+    save(id: string, obj: any): Promise<string>;
+    get(id: string): Promise<any>;
 }
+declare type Nullable<T> = T | null;
+export declare class Memo {
+    static port: MemoPort;
+    static use(port: MemoPort): void;
+    static id(obj: any): Nullable<string>;
+    static parent(obj: any): Nullable<string>;
+    static type(obj: any): Nullable<string>;
+    static ref(obj: any): Nullable<string>;
+    static save(obj: any): Promise<string>;
+    static snap(obj: any): Promise<string>;
+    static load(ref: string): Promise<any>;
+    static load(id: string): Promise<any>;
+    static load(typeId: string): Promise<any>;
+    static load(type: TypeLike, id: string): Promise<any>;
+    private static loadByRef;
+}
+export {};
 //# sourceMappingURL=Memo.d.ts.map

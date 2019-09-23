@@ -1,60 +1,9 @@
 import { Packer } from "./Packer";
 
-export const RefSymbol = Symbol.for("$ref");
-const TypeSymbol = Symbol.for('$type');
-
 export interface MemoPort {
-    load(ref: string): Promise<any>;
-    snap(ref: string, obj: any): Promise<void>;
+    load(ref: string, type: string, id: string): Promise<any>;
+    save(ref: string, type: string, id: string, obj: any): Promise<void>;
     id(): string;
-}
-
-export interface MemoAdvancePort extends MemoPort {
-    list(ref: string, type: string): Promise<any[]>;
-    search(ref: string, type: string, filter: string): Promise<any[]>;
-    get(ref: string, type: string, id: string): Promise<any>;
-}
-
-export class InMemory implements MemoAdvancePort {
-    list(ref: string, type: string): Promise<any[]> {
-        let r = Object.entries(this.db).filter(x => x[0].startsWith(ref) + "/" + type).map(x => x[1]);
-        return Promise.resolve(r);
-    }
-    search(ref: string, type: string, filter: string): Promise<any[]> {
-        return this.list(ref, type);
-    }
-    get(ref: string, type: string, id: string): Promise<any> {
-        return this.load(ref + "/" + type + "/" + encodeURIComponent(id));
-    }
-    private db: any = {};
-    load(ref: string): Promise<any> {
-        let loaded = this.db[ref];
-        return Promise.resolve(loaded);
-    }
-    snap(ref: string, obj: any): Promise<void> {
-        this.db[ref] = obj;
-        return Promise.resolve();
-    }
-    private _id = 1;
-    id() {
-        return (this._id++).toString();
-    }
-}
-
-function setRef(ref: string, where: any) {
-    if (typeof where.ref == 'function') {
-        return;
-    }
-    delete where[RefSymbol];
-    Object.defineProperty(where, RefSymbol, {
-        value: ref,
-        enumerable: false,
-        configurable: true
-    });
-}
-
-function last(a: any[], index?: number) {
-    return a[a.length - 1 - (index || 0)];
 }
 
 
@@ -77,154 +26,259 @@ function typeName(typeLike: TypeLike): string {
     return ctype(typeLike);
 }
 
+export class Dict {
+    private parent: string;
+    private type: string;
+
+    constructor(parent: any, name: TypeLike)
+    constructor(name: TypeLike)
+    constructor(...args: any[]) {
+        let parent = args.length == 1 ? '' : args[0];
+        let name = args.length == 1 ? args[0] : args[1];
+
+        this.parent = (parent ? (typeof (parent) == 'string' ? parent : Memo.ref(parent)) : "") || "";
+        this.type = typeName(name);
+    }
+
+    public async save(id: string, obj: any): Promise<void>
+    public async save(...args: any[]): Promise<void> {
+        let id = '';
+        let obj = null;
+        if (args.length == 1) {
+            obj = args[0];
+            id = Memo.id(obj) || Memo.port.id();
+        } else {
+            id = args[0];
+            obj = args[1];
+        }
+        if (typeof obj == 'object') {
+
+        } else {
+            obj = { _value: obj };
+        }
+        await Memo.port.save(this.parent, this.type, encodeURIComponent(id), Packer.pack(obj));
+    }
+
+    public async get(id: string): Promise<any> {
+        let data = await Memo.port.load(this.parent, this.type, encodeURIComponent(id));
+        let unpacked: any = data ? Packer.unpack(data) : null;
+        if (unpacked && unpacked._value) {
+            return unpacked._value;
+        } else {
+            if (unpacked && !unpacked.id) {
+                unpacked.id = id;
+            }
+            if (unpacked && Memo.type(unpacked) != this.type) {
+                unpacked.type = this.type;
+            }
+            if (unpacked && Memo.parent(unpacked) != this.parent && this.parent) {
+                unpacked.parent = this.parent;
+            }
+        }
+        return unpacked;
+    }
+}
+
+export class Table {
+    private parent: string;
+    private type: string;
+
+    constructor(parent: any, name: TypeLike)
+    constructor(name: TypeLike)
+    constructor()
+    constructor(...args: any[]) {
+        if (args.length == 0) {
+            this.parent = '';
+            this.type = Object.name;
+        } else {
+            let parent = args.length == 1 ? '' : args[0];
+            let name = args.length == 1 ? args[0] : args[1];
+            this.parent = (parent ? (typeof (parent) == 'string' ? parent : Memo.ref(parent)) : "") || "";
+            this.type = typeName(name);
+        }
+    }
+
+    public async add(obj: any) {
+        return await this.save(obj);
+    }
+
+    public async save(obj: any): Promise<string>
+    public async save(id: string, obj: any): Promise<string>
+    public async save(...args: any[]): Promise<string> {
+        let id = '';
+        let obj = null;
+        if (args.length == 1) {
+            obj = args[0];
+            id = Memo.id(obj) || Memo.port.id();
+        } else {
+            id = args[0];
+            obj = args[1];
+        }
+        await Memo.port.save(this.parent, this.type, encodeURIComponent(id), Packer.pack(obj));
+        return id;
+    }
+
+    public async get(id: string): Promise<any> {
+        let data = await Memo.port.load(this.parent, this.type, encodeURIComponent(id));
+        let unpacked: any = data ? Packer.unpack(data) : null;
+        if (unpacked && !unpacked.id) {
+            unpacked.id = id;
+        }
+        if (unpacked && Memo.type(unpacked) != this.type) {
+            unpacked.type = this.type;
+        }
+        if (unpacked && Memo.parent(unpacked) != this.parent && this.parent) {
+            unpacked.parent = this.parent;
+        }
+        return unpacked;
+    }
+}
+
+type Nullable<T> = T | null;
+
+class InMemory implements MemoPort {
+    db: any = {};
+    load(ref: string, type: string, id: string): Promise<any> {
+        let key = ref + "/" + type + "/" + id;
+        return Promise.resolve(this.db[key]);
+    }
+    save(ref: string, type: string, id: string, obj: any): Promise<void> {
+        let key = ref + "/" + type + "/" + id;
+        this.db[key] = obj;
+        return Promise.resolve();
+    }
+
+    private static _id = 1;
+
+    id(): string {
+        return `id${InMemory._id++}`;
+    }
+}
 
 export class Memo {
-    private static port: MemoPort = new InMemory();
+
+    static port: MemoPort = new InMemory();
 
     public static use(port: MemoPort) {
         Memo.port = port;
     }
 
-    public static async snap(parent: any | string, obj: any): Promise<string>;
-    public static async snap(obj: any): Promise<string>;
-    public static async snap(...args: any[]): Promise<string> {
-        if (args.length == 1) {
-            let obj = args[0];
-            let ref = Memo.ref(obj);
-            await Memo.port.snap(ref, Packer.pack(obj));
-            return ref;
-        } else {
-            let parent = args[0];
-            let obj = args[1];
-            Memo.attach(parent, obj);
-            let ref = Memo.ref(obj);
-            await Memo.port.snap(ref, Packer.pack(obj));
-            return ref;
+    public static id(obj: any): Nullable<string> {
+        if (!obj) {
+            return null;
         }
-    }
-
-    public static attach(parent: any, child: any) {
-        let id = Memo.id(child);
-        Memo.clear(child);
-        let parentRef = typeof parent == 'string' ? parent : Memo.ref(parent);
-        Memo.ref(child, { id, parent: parentRef });
-    }
-
-    public static ref(obj: any, def?: any): string {
-        if (typeof obj.ref == 'function') {
-            return obj.ref();
-        }
-
-        if (obj[RefSymbol]) {
-            return obj[RefSymbol];
-        }
-
-        if (obj['$ref']) {
-            return obj['$ref'];
-        }
-
         let id = null;
         if (typeof obj.id == 'function') {
             id = obj.id();
         } else if (obj.id) {
             id = obj.id;
-        } else if (def && def.id) {
-            id = def.id;
-        } else {
-            id = Memo.port.id();
         }
+        return id;
+    }
+
+    public static parent(obj: any): Nullable<string> {
+        if (!obj) return null;
+        if (typeof obj.parent == 'function') return obj.parent();
+        if (typeof obj.parent == 'string') return obj.parent;
+        return null;
+    }
+
+    public static type(obj: any): Nullable<string> {
+        if (!obj) return null;
 
         let type = "Object";
         if (typeof obj.col == 'function') {
             type = obj.col();
+        } else if (typeof obj.type == 'function') {
+            type = obj.type();
+        } else if (typeof obj.type == 'string') {
+            type = obj.type;
         } else {
             type = ctype(obj.constructor);
         }
+        return type;
+    }
 
-        let parent = def && def.parent ? def.parent : "";
+    public static ref(obj: any): Nullable<string> {
+        if (!obj) {
+            return null;
+        }
 
-        id = encodeURIComponent(id);
+        if (typeof obj.ref == 'function') return obj.ref();
+        if (obj.ref) return obj.ref;
 
+        let id = Memo.id(obj);
+        let type = Memo.type(obj);
+        let parent = Memo.parent(obj);
         let ref = `${parent}/${type}/${id}`;
-        setRef(ref, obj);
         return ref;
     }
 
-    private static clear(obj: any) {
-        delete obj[RefSymbol];
+    public static async save(obj: any): Promise<string> {
+        let id = Memo.id(obj);
+        if (!id) {
+            id = Memo.port.id();
+            obj.id = id;
+        }
+        return await Memo.snap(obj);
     }
 
-    static id(obj: any) {
-        let id = last(Memo.ref(obj).split('/'));
-        return decodeURIComponent(id);
-    }
+    public static async snap(obj: any): Promise<string> {
+        let parent = Memo.parent(obj) as string;
+        let type = Memo.type(obj) as string;
+        let id = Memo.id(obj) as string;
 
-    static type(obj: any) {
-        let val = last(Memo.ref(obj).split('/'), 1);
-        return val;
-    }
+        if (id === null || type === null) {
+            throw new Error("Can't snap objects without id or type");
+        }
 
-    static parent(obj: any) {
-        let parts = Memo.ref(obj).split('/');
-        parts = parts.slice(0, parts.length - 2);
-        return parts.join("/");
+        parent = parent || "";
+
+        let packed = Packer.pack(obj);
+
+        let ref = `${parent}/${type}/${id}`;
+
+        await Memo.port.save(parent, type, encodeURIComponent(id), packed);
+
+        return ref;
     }
 
     public static async load(ref: string): Promise<any>
     public static async load(id: string): Promise<any>
+    public static async load(typeId: string): Promise<any>
     public static async load(type: TypeLike, id: string): Promise<any>
-    public static async load(parentRef: string, type: TypeLike, id: string): Promise<any>
-    public static async load(parent: any, type: TypeLike, id: string): Promise<any>
     public static async load(...args: any[]): Promise<any> {
-
-        async function loadByRef(ref: string): Promise<any> {
-            let raw = await Memo.port.load(ref);
-            if (!raw) {
-                return null;
-            }
-            raw = Packer.unpack(raw);
-            setRef(ref, raw);
-            return raw;
-        }
-
         if (args.length == 1) {
-            let first = args[0] as string;
-            if (first.startsWith('/')) {
-                return await loadByRef(first);
-            } else {
-                first = encodeURIComponent(first);
-                return await loadByRef('/Object/' + first)
-            }
-        } else if (args.length == 2) {
-            let id = args[1] as string;
-            let typeLike = args[0];
-            let type = typeName(typeLike as TypeLike);
-            id = encodeURIComponent(id);
-            return await loadByRef(`/${type}/${id}`);
-        } else if (args.length == 3) {
-            let anyParent = args[0];
-            let parent = typeof anyParent == 'string' ? anyParent : Memo.ref(anyParent);
-            let type = typeName(args[1] as TypeLike);
-            let id = args[2] as string;
-            id = encodeURIComponent(id);
-            return await loadByRef(`${parent}/${type}/${id}`);
+            return await Memo.loadByRef(args[0]);
+        } else {
+            let type = typeName(args[0] as TypeLike);
+            let id = args[1];
+            return await Memo.loadByRef(`${type}/${encodeURIComponent(id)}`);
         }
     }
 
-    public static async list(parent: any, type: TypeLike): Promise<any[]> {
-        let a = await (Memo.port as MemoAdvancePort).list(Memo.ref(parent), typeName(type));
-        return a.map(x => Packer.unpack(x));
-    }
+    private static async loadByRef(ref: string): Promise<any> {
+        let parent = '';
+        let type = '';
+        let id = '';
 
-    public static async get(parent: any, type: TypeLike, id: string): Promise<any> {
-        let a = await (Memo.port as MemoAdvancePort).get(Memo.ref(parent), typeName(type), id);
-        return a ? Packer.unpack(a) : null;
-    }
+        if (ref.startsWith('/')) {
+            let parts = ref.split('/');
+            parent = parts.slice(0, -2).join("/");
+            type = parts.slice(-2, -1).join('');
+            id = parts.slice(-1).join();
+        } else if (ref.includes('/')) {
+            let parts = ref.split('/');
+            type = parts[0];
+            id = parts[1];
+        } else {
+            id = ref;
+            type = Object.name;
+            parent = '';
+        }
 
-    public static print(obj: any) {
-        console.log("Id: " + Memo.id(obj));
-        console.log("Type: " + Memo.type(obj));
-        console.log("Ref: " + Memo.ref(obj));
-        console.log("Parent: " + Memo.parent(obj));
+        let data = await Memo.port.load(parent, type, id);
+        if (data) data = Packer.unpack(data);
+        return data;
     }
 }
