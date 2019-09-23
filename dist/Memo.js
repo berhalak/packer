@@ -113,6 +113,12 @@ class InMemory {
     constructor() {
         this.db = {};
     }
+    list(ref, type) {
+        return Promise.resolve([]);
+    }
+    find(ref, type, filter) {
+        return Promise.resolve([]);
+    }
     load(ref, type, id) {
         let key = ref + "/" + type + "/" + id;
         return Promise.resolve(this.db[key]);
@@ -240,6 +246,14 @@ class Memo {
         if (data)
             data = Packer_1.Packer.unpack(data);
         return data;
+    }
+    static async list(type) {
+        let data = await Memo.port.list('', typeName(type));
+        return data.map(x => Packer_1.Packer.unpack(x));
+    }
+    static async find(type, filter) {
+        let data = await Memo.port.find('', typeName(type), filter);
+        return data.map(x => Packer_1.Packer.unpack(x));
     }
 }
 exports.Memo = Memo;

@@ -1,6 +1,10 @@
+declare type FilterFun = (x: any) => boolean;
+declare type Filter = string | FilterFun;
 export interface MemoPort {
     load(ref: string, type: string, id: string): Promise<any>;
     save(ref: string, type: string, id: string, obj: any): Promise<void>;
+    list(ref: string, type: string): Promise<any[]>;
+    find(ref: string, type: string, filter: Filter): Promise<any[]>;
     id(): string;
 }
 declare type TypeLike = string | {
@@ -40,6 +44,8 @@ export declare class Memo {
     static load(typeId: string): Promise<any>;
     static load(type: TypeLike, id: string): Promise<any>;
     private static loadByRef;
+    static list(type: TypeLike): Promise<any[]>;
+    static find(type: TypeLike, filter: Filter): Promise<any[]>;
 }
 export {};
 //# sourceMappingURL=Memo.d.ts.map
