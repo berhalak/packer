@@ -1,4 +1,4 @@
-import { Packer, pack } from "./index";
+import { Packer, pack, ignore } from './index';
 
 class Upper {
     data: { text: string };
@@ -53,5 +53,21 @@ if (packed_v1['$type'] != "version1") {
 }
 
 
+class Model {
+    @ignore
+    name = 'a';
+
+    hello() {
+        return this.name;
+    }
+}
+
+const m = Packer.clone(new Model());
+
+if (m.hello() == 'a')
+    throw new Error("Ignore doesn't work");
+
+
+console.log(Packer.serialize([{ a: 1, b: new Model() }]));
 
 console.log("Test passed");

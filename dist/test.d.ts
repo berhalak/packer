@@ -1,2 +1,2 @@
-import "./PackerTest";
+export {};
 //# sourceMappingURL=test.d.ts.map
