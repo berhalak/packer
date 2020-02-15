@@ -71,3 +71,45 @@ if (m.hello() == 'a')
 console.log(Packer.serialize([{ a: 1, b: new Model() }]));
 
 console.log("Test passed");
+
+let ok = false;
+class CustomPack {
+    pack() {
+        return {
+            a: 1
+        }
+    }
+    unpack(data) {
+        if (data.a == 1) {
+            ok = true;
+        }
+    }
+    b = 2;
+    hello() {
+        return this.b ?? 3;
+    }
+}
+
+if (Packer.unpack<CustomPack>(Packer.pack(new CustomPack())).hello() != 3) {
+    throw new Error("Pack and unpack doesn't work")
+}
+
+if (!ok) throw new Error("Wrong unpack");
+else console.log("Unpack works");
+
+
+// packing dates
+const d1 = new Date();
+const d2 = Packer.pack(d1);
+const d3 = Packer.unpack<Date>(d2);
+if (d1.toISOString() != d3.toISOString()) throw "Date doesnt work"
+
+const s1 = new Set<string>(); s1.add("a");
+const s2 = Packer.pack(s1);
+const s3 = Packer.unpack<Set<string>>(s2);
+if (!s3.has("a")) throw "Set doesn't work";
+
+const m1 = new Map<number, string>(); m1.set(5, "aa");
+const m2 = Packer.pack(m1);
+const m3 = Packer.unpack<Map<number, string>>(m2);
+if (m3.get(5) != "aa") throw "Map doesn't work";

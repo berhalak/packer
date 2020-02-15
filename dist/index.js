@@ -18,13 +18,31 @@ function ignore(target, prop) {
 exports.ignore = ignore;
 class Packer {
     static clone(model) {
-        return this._unpack(this.pack(model));
+        return this.unpack(this.pack(model));
     }
     static pack(model) {
         if (!model) {
-            return;
+            return null;
         }
         const type = this.register(model);
+        if (type == 'Date') {
+            return {
+                id: model.toISOString(),
+                $type: 'Date'
+            };
+        }
+        if (type == 'Set') {
+            return {
+                values: [...model.values()].map(x => Packer.pack(x)),
+                $type: 'Set'
+            };
+        }
+        if (type == 'Map') {
+            return {
+                values: [...model.entries()].map(x => [Packer.pack(x[0]), Packer.pack(x[1])]),
+                $type: 'Map'
+            };
+        }
         const ignores = this.ignores(model);
         let packed = {};
         if (isObject(model)) {
@@ -86,25 +104,44 @@ class Packer {
         return null;
     }
     static unpack(model) {
-        return this._unpack(JSON.parse(JSON.stringify(model)));
-    }
-    static _unpack(model) {
         if (isObject(model)) {
-            for (let key in model) {
-                if (key != '$type') {
-                    this._unpack(model[key]);
+            let data = {};
+            const typeName = model.$type;
+            if (typeName == "Date") {
+                const date = new Date(model.id);
+                return date;
+            }
+            else if (typeName == "Set") {
+                const set = new Set(model.values.map(x => Packer.unpack(x)));
+                return set;
+            }
+            else if (typeName == "Map") {
+                const set = new Map(model.values.map(x => [Packer.unpack(x[0]), Packer.unpack(x[1])]));
+                return set;
+            }
+            else {
+                for (let key in model) {
+                    if (key != '$type') {
+                        data[key] = this.unpack(model[key]);
+                    }
                 }
             }
-            const ctr = this.registry[model.$type];
+            const ctr = this.registry[typeName];
             if (ctr) {
-                Object.setPrototypeOf(model, ctr.prototype);
-                if (model.unpack) {
-                    model.unpack();
+                if (ctr.prototype.unpack) {
+                    let obj = Object.create(ctr.prototype);
+                    obj.unpack(data);
+                    return obj;
+                }
+                else {
+                    Object.setPrototypeOf(data, ctr.prototype);
+                    return data;
                 }
             }
+            return data;
         }
         else if (model && Array.isArray(model)) {
-            model.forEach(x => this._unpack(x));
+            return model.map(x => this.unpack(x));
         }
         return model;
     }
@@ -112,7 +149,7 @@ class Packer {
         return JSON.stringify(this.pack(model));
     }
     static deserialize(json) {
-        return this._unpack(JSON.parse(json));
+        return this.unpack(JSON.parse(json));
     }
 }
 exports.Packer = Packer;

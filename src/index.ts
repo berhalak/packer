@@ -16,20 +16,45 @@ export function ignore(target: any, prop: string) {
     target[IGNORES][prop] = true;
 }
 
+export type Packed<T> = any;
+
 export class Packer {
 
     private static registry: any = {};
 
     static clone<T>(model: T): T {
-        return this._unpack(this.pack(model));
+        return this.unpack(this.pack(model));
     }
 
     static pack(model: any): any {
+
         if (!model) {
-            return;
+            return null;
         }
 
         const type = this.register(model);
+
+        if (type == 'Date') {
+            return {
+                id: (model as Date).toISOString(),
+                $type: 'Date'
+            }
+        }
+
+        if (type == 'Set') {
+            return {
+                values: [...(model as Set<any>).values()].map(x => Packer.pack(x)),
+                $type: 'Set'
+            }
+        }
+
+        if (type == 'Map') {
+            return {
+                values: [...(model as Map<any, any>).entries()].map(x => [Packer.pack(x[0]), Packer.pack(x[1])]),
+                $type: 'Map'
+            }
+        }
+
         const ignores = this.ignores(model);
 
         let packed: any = {};
@@ -50,6 +75,7 @@ export class Packer {
             for (let key in packed) {
                 packed[key] = this.pack(packed[key]);
             }
+
             if (type != Object.name && type)
                 packed['$type'] = type;
         } else if (Array.isArray(model)) {
@@ -90,29 +116,42 @@ export class Packer {
         return null;
     }
 
+
+
     static unpack<T>(model: any): T {
-        return this._unpack(JSON.parse(JSON.stringify(model)));
-    }
-
-    private static _unpack<T>(model: any): T {
         if (isObject(model)) {
-
-            for (let key in model) {
-                if (key != '$type') {
-                    this._unpack(model[key]);
+            let data = {};
+            const typeName = model.$type;
+            if (typeName == "Date") {
+                const date = new Date(model.id);
+                return date as any;
+            } else if (typeName == "Set") {
+                const set = new Set(model.values.map(x => Packer.unpack(x)));
+                return set as any;
+            } else if (typeName == "Map") {
+                const set = new Map<any, any>(model.values.map(x => [Packer.unpack(x[0]), Packer.unpack(x[1])]));
+                return set as any;
+            } else {
+                for (let key in model) {
+                    if (key != '$type') {
+                        data[key] = this.unpack(model[key]);
+                    }
                 }
             }
-
-            const ctr = this.registry[model.$type];
+            const ctr = this.registry[typeName];
             if (ctr) {
-                Object.setPrototypeOf(model, ctr.prototype);
-                if (model.unpack) {
-                    model.unpack();
+                if (ctr.prototype.unpack) {
+                    let obj = Object.create(ctr.prototype);
+                    obj.unpack(data);
+                    return obj;
+                } else {
+                    Object.setPrototypeOf(data, ctr.prototype);
+                    return data as any;
                 }
             }
-
+            return data as any;
         } else if (model && Array.isArray(model)) {
-            (model as any[]).forEach(x => this._unpack(x));
+            return (model as any[]).map(x => this.unpack(x)) as any;
         }
 
         return model as T;
@@ -123,6 +162,6 @@ export class Packer {
     }
 
     static deserialize<T>(json: string): T {
-        return this._unpack<T>(JSON.parse(json));
+        return this.unpack<T>(JSON.parse(json));
     }
 }

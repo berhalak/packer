@@ -63,4 +63,49 @@ if (m.hello() == 'a')
     throw new Error("Ignore doesn't work");
 console.log(index_1.Packer.serialize([{ a: 1, b: new Model() }]));
 console.log("Test passed");
+let ok = false;
+class CustomPack {
+    constructor() {
+        this.b = 2;
+    }
+    pack() {
+        return {
+            a: 1
+        };
+    }
+    unpack(data) {
+        if (data.a == 1) {
+            ok = true;
+        }
+    }
+    hello() {
+        var _a;
+        return _a = this.b, (_a !== null && _a !== void 0 ? _a : 3);
+    }
+}
+if (index_1.Packer.unpack(index_1.Packer.pack(new CustomPack())).hello() != 3) {
+    throw new Error("Pack and unpack doesn't work");
+}
+if (!ok)
+    throw new Error("Wrong unpack");
+else
+    console.log("Unpack works");
+// packing dates
+const d1 = new Date();
+const d2 = index_1.Packer.pack(d1);
+const d3 = index_1.Packer.unpack(d2);
+if (d1.toISOString() != d3.toISOString())
+    throw "Date doesnt work";
+const s1 = new Set();
+s1.add("a");
+const s2 = index_1.Packer.pack(s1);
+const s3 = index_1.Packer.unpack(s2);
+if (!s3.has("a"))
+    throw "Set doesn't work";
+const m1 = new Map();
+m1.set(5, "aa");
+const m2 = index_1.Packer.pack(m1);
+const m3 = index_1.Packer.unpack(m2);
+if (m3.get(5) != "aa")
+    throw "Map doesn't work";
 //# sourceMappingURL=test.js.map
