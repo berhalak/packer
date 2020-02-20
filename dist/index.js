@@ -133,6 +133,10 @@ class Packer {
                     obj.unpack(data);
                     return obj;
                 }
+                else if (ctr.unpack) {
+                    let obj = ctr.unpack(data);
+                    return obj;
+                }
                 else {
                     Object.setPrototypeOf(data, ctr.prototype);
                     return data;

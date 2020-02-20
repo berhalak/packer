@@ -1,0 +1,10 @@
+src
+tsconfig.json
+*.spec*
+jest.config.js
+.vscode
+**/test*ts
+dist/test.*
+*.tgz
+*.yml
+*.lock
