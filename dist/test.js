@@ -80,7 +80,7 @@ class CustomPack {
     }
     hello() {
         var _a;
-        return _a = this.b, (_a !== null && _a !== void 0 ? _a : 3);
+        return (_a = this.b) !== null && _a !== void 0 ? _a : 3;
     }
 }
 if (index_1.Packer.unpack(index_1.Packer.pack(new CustomPack())).hello() != 3) {

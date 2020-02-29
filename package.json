@@ -1,32 +1,32 @@
 {
-	"name": "packer-js",
-	"version": "2.0.2",
-	"description": "Javascript object serializer",
-	"main": "dist/index.js",
-	"private": false,
-	"types": "dist/index.d.ts",
-	"scripts": {
-		"test": "ts-node src/test.ts",
-		"build": "tsc",
-		"deploy": "npm run build && npm publish"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/berhalak/packer.git"
-	},
-	"keywords": [
-		"serialization",
-		"javascript",
-		"serialize"
-	],
-	"author": "berhalak",
-	"license": "ISC",
-	"bugs": {
-		"url": "https://github.com/berhalak/packer/issues"
-	},
-	"homepage": "https://github.com/berhalak/packer#readme",
-	"devDependencies": {
-		"ts-node": "8.6.2",
-		"typescript": "3.7.5"
-	}
+  "name": "packer-js",
+  "version": "2.0.3",
+  "description": "Javascript object serializer",
+  "main": "dist/index.js",
+  "private": false,
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "ts-node src/test.ts",
+    "build": "tsc",
+    "deploy": "npm run build && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/berhalak/packer.git"
+  },
+  "keywords": [
+    "serialization",
+    "javascript",
+    "serialize"
+  ],
+  "author": "berhalak",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/berhalak/packer/issues"
+  },
+  "homepage": "https://github.com/berhalak/packer#readme",
+  "devDependencies": {
+    "ts-node": "8.6.2",
+    "typescript": "3.8.3"
+  }
 }

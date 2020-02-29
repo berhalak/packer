@@ -5,7 +5,10 @@ function isObject(model) {
 }
 function pack(name) {
     return function (target) {
-        target['$type'] = name;
+        if (name) {
+            target['$type'] = name;
+        }
+        Packer.register(target);
     };
 }
 exports.pack = pack;
@@ -74,7 +77,7 @@ class Packer {
         return packed;
     }
     static ignores(model) {
-        var _a, _b;
+        var _a;
         if (!model) {
             return {};
         }
@@ -82,7 +85,7 @@ class Packer {
             return model.$ignores || {};
         }
         else if (isObject(model)) {
-            return ((_a = model) === null || _a === void 0 ? void 0 : _a.constructor) ? (_b = model.constructor[IGNORES], (_b !== null && _b !== void 0 ? _b : {})) : {};
+            return (model === null || model === void 0 ? void 0 : model.constructor) ? ((_a = model.constructor[IGNORES]) !== null && _a !== void 0 ? _a : {}) : {};
         }
         return {};
     }
