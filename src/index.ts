@@ -21,9 +21,20 @@ export function ignore(target: any, prop: string) {
 
 export type Packed<T> = any;
 
-export class Packer {
+export class PackerLogger {
+    static debug = false;
+    static print() {
+        console.log("Types registered in Packer")
+        for (let key in registry) {
+            console.log(`${key} is registered to:`);
+            console.log(registry[key]);
+        }
+    }
+}
 
-    private static registry: any = {};
+const registry: any = {};
+
+export class Packer {
 
     static clone<T>(model: T): T {
         return this.unpack(this.pack(model));
@@ -111,7 +122,10 @@ export class Packer {
             if (model['$type']) {
                 type = model['$type'];
             }
-            this.registry[type] = model;
+            if (registry[type] !== model && PackerLogger.debug) {
+                console.debug(`[Packer] Registering type ${type}`);
+            }
+            registry[type] = model;
             return type;
         } else if (isObject(model)) {
             return model.constructor ? this.register(model.constructor) : null;
@@ -125,6 +139,9 @@ export class Packer {
         if (isObject(model)) {
             let data = {};
             const typeName = model.$type;
+            if (typeName === undefined) {
+                return model;
+            }
             if (typeName == "Date") {
                 const date = new Date(model.id);
                 return date as any;
@@ -141,7 +158,7 @@ export class Packer {
                     }
                 }
             }
-            const ctr = this.registry[typeName];
+            const ctr = registry[typeName];
             if (ctr) {
                 if (ctr.prototype.unpack) {
                     let obj = Object.create(ctr.prototype);
@@ -153,6 +170,11 @@ export class Packer {
                 } else {
                     Object.setPrototypeOf(data, ctr.prototype);
                     return data as any;
+                }
+            } else {
+                if (PackerLogger.debug) {
+                    console.debug(`[Packer] Type ${typeName} is not registered while unpacking:`);
+                    console.debug(data);
                 }
             }
             return data as any;

@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = require("./index");
+index_1.PackerLogger.debug = true;
 class Upper {
     constructor(text) {
         this.data = {
@@ -108,4 +109,5 @@ const m2 = index_1.Packer.pack(m1);
 const m3 = index_1.Packer.unpack(m2);
 if (m3.get(5) != "aa")
     throw "Map doesn't work";
+index_1.PackerLogger.print();
 //# sourceMappingURL=test.js.map

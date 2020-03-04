@@ -1,4 +1,6 @@
-import { Packer, pack, ignore } from './index';
+import { Packer, pack, ignore, PackerLogger } from './index';
+
+PackerLogger.debug = true;
 
 class Upper {
     data: { text: string };
@@ -113,3 +115,5 @@ const m1 = new Map<number, string>(); m1.set(5, "aa");
 const m2 = Packer.pack(m1);
 const m3 = Packer.unpack<Map<number, string>>(m2);
 if (m3.get(5) != "aa") throw "Map doesn't work";
+
+PackerLogger.print();

@@ -19,6 +19,18 @@ function ignore(target, prop) {
     target[IGNORES][prop] = true;
 }
 exports.ignore = ignore;
+class PackerLogger {
+    static print() {
+        console.log("Types registered in Packer");
+        for (let key in registry) {
+            console.log(`${key} is registered to:`);
+            console.log(registry[key]);
+        }
+    }
+}
+exports.PackerLogger = PackerLogger;
+PackerLogger.debug = false;
+const registry = {};
 class Packer {
     static clone(model) {
         return this.unpack(this.pack(model));
@@ -98,7 +110,10 @@ class Packer {
             if (model['$type']) {
                 type = model['$type'];
             }
-            this.registry[type] = model;
+            if (registry[type] !== model && PackerLogger.debug) {
+                console.debug(`[Packer] Registering type ${type}`);
+            }
+            registry[type] = model;
             return type;
         }
         else if (isObject(model)) {
@@ -110,6 +125,9 @@ class Packer {
         if (isObject(model)) {
             let data = {};
             const typeName = model.$type;
+            if (typeName === undefined) {
+                return model;
+            }
             if (typeName == "Date") {
                 const date = new Date(model.id);
                 return date;
@@ -129,7 +147,7 @@ class Packer {
                     }
                 }
             }
-            const ctr = this.registry[typeName];
+            const ctr = registry[typeName];
             if (ctr) {
                 if (ctr.prototype.unpack) {
                     let obj = Object.create(ctr.prototype);
@@ -143,6 +161,12 @@ class Packer {
                 else {
                     Object.setPrototypeOf(data, ctr.prototype);
                     return data;
+                }
+            }
+            else {
+                if (PackerLogger.debug) {
+                    console.debug(`[Packer] Type ${typeName} is not registered while unpacking:`);
+                    console.debug(data);
                 }
             }
             return data;
@@ -160,5 +184,4 @@ class Packer {
     }
 }
 exports.Packer = Packer;
-Packer.registry = {};
 //# sourceMappingURL=index.js.map
