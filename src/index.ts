@@ -2,10 +2,12 @@ function isObject(model: any) {
     return model && typeof model == 'object' && !Array.isArray(model);
 }
 
-export function pack(name?: string) {
+type NameLike = string | { name: string };
+
+export function pack(name?: NameLike) {
     return function (target: any) {
         if (name) {
-            target['$type'] = name;
+            target['$type'] = typeof name == 'string' ? name : name.name;
         }
         Packer.register(target);
     }

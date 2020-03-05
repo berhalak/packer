@@ -1,4 +1,7 @@
-export declare function pack(name?: string): (target: any) => void;
+declare type NameLike = string | {
+    name: string;
+};
+export declare function pack(name?: NameLike): (target: any) => void;
 export declare function ignore(target: any, prop: string): void;
 export declare type Packed<T> = any;
 export declare class PackerLogger {
@@ -14,4 +17,5 @@ export declare class Packer {
     static serialize(model: any): string;
     static deserialize<T>(json: string): T;
 }
+export {};
 //# sourceMappingURL=index.d.ts.map

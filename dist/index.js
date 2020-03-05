@@ -6,7 +6,7 @@ function isObject(model) {
 function pack(name) {
     return function (target) {
         if (name) {
-            target['$type'] = name;
+            target['$type'] = typeof name == 'string' ? name : name.name;
         }
         Packer.register(target);
     };
