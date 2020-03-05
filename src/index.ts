@@ -46,6 +46,10 @@ export class Packer {
             return null;
         }
 
+        if (model.$type) {
+            return model;
+        }
+
         const type = this.register(model);
 
         if (type == 'Date') {
@@ -142,6 +146,9 @@ export class Packer {
             if (typeName === undefined) {
                 return model;
             }
+            if (typeName == 'Object') {
+                return model;
+            }
             if (typeName == "Date") {
                 const date = new Date(model.id);
                 return date as any;
@@ -158,6 +165,7 @@ export class Packer {
                     }
                 }
             }
+
             const ctr = registry[typeName];
             if (ctr) {
                 if (ctr.prototype.unpack) {
@@ -176,6 +184,7 @@ export class Packer {
                     console.debug(`[Packer] Type ${typeName} is not registered while unpacking:`);
                     console.debug(data);
                 }
+                throw new Error(`Type ${typeName} is not registered`);
             }
             return data as any;
         } else if (model && Array.isArray(model)) {

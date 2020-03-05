@@ -7,6 +7,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = require("./index");
+function assert(ok) {
+    if (!ok)
+        throw "Error";
+}
 index_1.PackerLogger.debug = true;
 class Upper {
     constructor(text) {
@@ -110,4 +114,23 @@ const m3 = index_1.Packer.unpack(m2);
 if (m3.get(5) != "aa")
     throw "Map doesn't work";
 index_1.PackerLogger.print();
+class Test {
+    constructor() {
+        this.name = "a";
+    }
+}
+let packed = index_1.Packer.pack(new Test());
+assert(packed.$type);
+assert(packed.$type == 'Test');
+assert(packed.name);
+assert(packed.name == 'a');
+// double pack
+packed = index_1.Packer.pack(packed);
+assert(packed.$type);
+assert(packed.$type == 'Test');
+assert(packed.name);
+assert(packed.name == 'a');
+// change type and make sure it makes error
+packed.$type = 'Dummy';
+index_1.Packer.unpack(packed);
 //# sourceMappingURL=test.js.map

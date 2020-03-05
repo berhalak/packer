@@ -1,5 +1,7 @@
 import { Packer, pack, ignore, PackerLogger } from './index';
-
+function assert(ok: any) {
+    if (!ok) throw "Error";
+}
 PackerLogger.debug = true;
 
 class Upper {
@@ -117,3 +119,24 @@ const m3 = Packer.unpack<Map<number, string>>(m2);
 if (m3.get(5) != "aa") throw "Map doesn't work";
 
 PackerLogger.print();
+
+class Test {
+    name = "a";
+}
+
+let packed = Packer.pack(new Test());
+assert(packed.$type);
+assert(packed.$type == 'Test');
+assert(packed.name);
+assert(packed.name == 'a');
+
+// double pack
+packed = Packer.pack(packed);
+assert(packed.$type);
+assert(packed.$type == 'Test');
+assert(packed.name);
+assert(packed.name == 'a');
+
+// change type and make sure it makes error
+packed.$type = 'Dummy';
+Packer.unpack(packed);

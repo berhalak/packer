@@ -39,6 +39,9 @@ class Packer {
         if (!model) {
             return null;
         }
+        if (model.$type) {
+            return model;
+        }
         const type = this.register(model);
         if (type == 'Date') {
             return {
@@ -128,6 +131,9 @@ class Packer {
             if (typeName === undefined) {
                 return model;
             }
+            if (typeName == 'Object') {
+                return model;
+            }
             if (typeName == "Date") {
                 const date = new Date(model.id);
                 return date;
@@ -168,6 +174,7 @@ class Packer {
                     console.debug(`[Packer] Type ${typeName} is not registered while unpacking:`);
                     console.debug(data);
                 }
+                throw new Error(`Type ${typeName} is not registered`);
             }
             return data;
         }
