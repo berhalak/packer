@@ -139,4 +139,9 @@ assert(packed.name == 'a');
 
 // change type and make sure it makes error
 packed.$type = 'Dummy';
-Packer.unpack(packed);
+try {
+    Packer.unpack(packed);
+    throw "Should throw";
+} catch {
+
+}
