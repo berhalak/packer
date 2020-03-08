@@ -21,15 +21,19 @@ function ignore(target, prop) {
 exports.ignore = ignore;
 class PackerLogger {
     static print() {
-        console.log("Types registered in Packer");
+        console.log("Types registered in Packer:" + PackerLogger.version);
         for (let key in registry) {
             console.log(`${key} is registered to:`);
             console.log(registry[key]);
+        }
+        if (Object.keys(registry).length == 0) {
+            console.log("No types registered");
         }
     }
 }
 exports.PackerLogger = PackerLogger;
 PackerLogger.debug = false;
+PackerLogger.version = "2.0.7";
 const registry = {};
 class Packer {
     static clone(model) {

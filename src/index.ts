@@ -25,11 +25,15 @@ export type Packed<T> = any;
 
 export class PackerLogger {
     static debug = false;
+    private static version = "2.0.7";
     static print() {
-        console.log("Types registered in Packer")
+        console.log("Types registered in Packer:" + PackerLogger.version)
         for (let key in registry) {
             console.log(`${key} is registered to:`);
             console.log(registry[key]);
+        }
+        if (Object.keys(registry).length == 0) {
+            console.log("No types registered");
         }
     }
 }
