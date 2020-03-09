@@ -132,5 +132,10 @@ assert(packed.name);
 assert(packed.name == 'a');
 // change type and make sure it makes error
 packed.$type = 'Dummy';
-index_1.Packer.unpack(packed);
+try {
+    index_1.Packer.unpack(packed);
+    throw "Should throw";
+}
+catch (_a) {
+}
 //# sourceMappingURL=test.js.map

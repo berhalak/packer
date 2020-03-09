@@ -22,12 +22,11 @@ export function ignore(target: any, prop: string) {
 }
 
 export type Packed<T> = any;
-
+const version = "2.0.8";
 export class PackerLogger {
     static debug = false;
-    private static version = "2.0.7";
     static print() {
-        console.log("Types registered in Packer:" + PackerLogger.version)
+        console.log("Types registered in Packer:" + version)
         for (let key in registry) {
             console.log(`${key} is registered to:`);
             console.log(registry[key]);
@@ -39,6 +38,8 @@ export class PackerLogger {
 }
 
 const registry: any = {};
+
+console.debug(`Packer ${version} started`);
 
 export class Packer {
 

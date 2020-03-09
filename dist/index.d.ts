@@ -6,7 +6,6 @@ export declare function ignore(target: any, prop: string): void;
 export declare type Packed<T> = any;
 export declare class PackerLogger {
     static debug: boolean;
-    private static version;
     static print(): void;
 }
 export declare class Packer {

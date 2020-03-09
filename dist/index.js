@@ -19,9 +19,10 @@ function ignore(target, prop) {
     target[IGNORES][prop] = true;
 }
 exports.ignore = ignore;
+const version = "2.0.8";
 class PackerLogger {
     static print() {
-        console.log("Types registered in Packer:" + PackerLogger.version);
+        console.log("Types registered in Packer:" + version);
         for (let key in registry) {
             console.log(`${key} is registered to:`);
             console.log(registry[key]);
@@ -33,8 +34,8 @@ class PackerLogger {
 }
 exports.PackerLogger = PackerLogger;
 PackerLogger.debug = false;
-PackerLogger.version = "2.0.7";
 const registry = {};
+console.debug(`Packer ${version} started`);
 class Packer {
     static clone(model) {
         return this.unpack(this.pack(model));
