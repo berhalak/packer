@@ -138,4 +138,7 @@ try {
 }
 catch (_a) {
 }
+// packing null
+const packedNull = index_1.Packer.pack(null);
+assert(packedNull === null);
 //# sourceMappingURL=test.js.map

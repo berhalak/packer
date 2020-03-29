@@ -145,3 +145,9 @@ try {
 } catch {
 
 }
+
+
+// packing null
+const packedNull = Packer.pack(null);
+
+assert(packedNull === null);

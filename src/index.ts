@@ -74,10 +74,14 @@ export class Packer {
         }
 
         if (type == 'Map') {
-            return {
-                values: [...(model as Map<any, any>).entries()].map(x => [Packer.pack(x[0]), Packer.pack(x[1])]),
-                $type: 'Map'
-            }
+            const dict: any = {};
+            const map = model as Map<any, any>;
+
+            dict.keys = [...map.keys()].map(x => Packer.pack(x));
+            dict.values = [...map.values()].map(x => Packer.pack(x));
+            dict['$type'] = 'Map';
+
+            return dict;
         }
 
         const ignores = this.ignores(model);
@@ -163,7 +167,10 @@ export class Packer {
                 const set = new Set(model.values.map(x => Packer.unpack(x)));
                 return set as any;
             } else if (typeName == "Map") {
-                const set = new Map<any, any>(model.values.map(x => [Packer.unpack(x[0]), Packer.unpack(x[1])]));
+                const set = new Map<any, any>();
+                for (let i = 0; i < model.keys.length; i++) {
+                    set.set(model.keys[i], model.values[i]);
+                }
                 return set as any;
             } else {
                 for (let key in model) {
