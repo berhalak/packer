@@ -13,7 +13,7 @@ export declare class Packer {
     static pack(model: any): any;
     static ignores(model: any): any;
     static register(model: any): string;
-    static unpack<T>(model: any): T;
+    static unpack<T>(model: any, def?: T): T;
     static serialize(model: any): string;
     static deserialize<T>(json: string): T;
 }

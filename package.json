@@ -1,6 +1,6 @@
 {
   "name": "packer-js",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "description": "Javascript object serializer",
   "main": "dist/index.js",
   "private": false,
@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/berhalak/packer#readme",
   "devDependencies": {
-    "ts-node": "8.6.2",
+    "ts-node": "8.9.1",
     "typescript": "3.8.3"
   }
 }

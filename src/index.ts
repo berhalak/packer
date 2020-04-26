@@ -150,9 +150,9 @@ export class Packer {
 
 
 
-    static unpack<T>(model: any): T {
+    static unpack<T>(model: any, def?: T): T {
         if (isObject(model)) {
-            let data = {};
+            let data = def || {};
             const typeName = model.$type;
             if (typeName === undefined) {
                 return model;
@@ -200,7 +200,6 @@ export class Packer {
                 }
                 throw new Error(`Type ${typeName} is not registered`);
             }
-            return data as any;
         } else if (model && Array.isArray(model)) {
             return (model as any[]).map(x => this.unpack(x)) as any;
         }
