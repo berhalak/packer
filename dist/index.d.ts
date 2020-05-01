@@ -10,6 +10,7 @@ export declare class PackerLogger {
 }
 export declare class Packer {
     static clone<T>(model: T): T;
+    static clear(): void;
     static pack(model: any): any;
     static ignores(model: any): any;
     static register(model: any): string;

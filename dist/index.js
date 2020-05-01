@@ -34,11 +34,14 @@ class PackerLogger {
 }
 exports.PackerLogger = PackerLogger;
 PackerLogger.debug = false;
-const registry = {};
+let registry = {};
 console.debug(`Packer ${version} started`);
 class Packer {
     static clone(model) {
         return this.unpack(this.pack(model));
+    }
+    static clear() {
+        registry = {};
     }
     static pack(model) {
         if (!model) {
@@ -74,6 +77,9 @@ class Packer {
             if (typeof model.pack == 'function') {
                 packed = model.pack();
             }
+            else if (model.constructor && typeof model.constructor.pack == 'function') {
+                packed = model.constructor.pack(model);
+            }
             else {
                 for (let key in model) {
                     if (key.startsWith('$'))
@@ -83,9 +89,9 @@ class Packer {
                     }
                     packed[key] = model[key];
                 }
-            }
-            for (let key in packed) {
-                packed[key] = this.pack(packed[key]);
+                for (let key in packed) {
+                    packed[key] = this.pack(packed[key]);
+                }
             }
             if (type != Object.name && type)
                 packed['$type'] = type;
@@ -156,25 +162,23 @@ class Packer {
                 }
                 return set;
             }
-            else {
-                for (let key in model) {
-                    if (key != '$type') {
-                        data[key] = this.unpack(model[key]);
-                    }
-                }
-            }
             const ctr = registry[typeName];
             if (ctr) {
                 if (ctr.prototype.unpack) {
                     let obj = Object.create(ctr.prototype);
-                    obj.unpack(data);
+                    obj.unpack(model);
                     return obj;
                 }
                 else if (ctr.unpack) {
-                    let obj = ctr.unpack(data);
+                    let obj = ctr.unpack(model);
                     return obj;
                 }
                 else {
+                    for (let key in model) {
+                        if (key != '$type') {
+                            data[key] = this.unpack(model[key]);
+                        }
+                    }
                     Object.setPrototypeOf(data, ctr.prototype);
                     return data;
                 }
