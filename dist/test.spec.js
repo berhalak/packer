@@ -231,4 +231,103 @@ test("Child failure", () => {
     expect(p2.child.toString()).toBe("john");
     expect(ok).toBeTruthy();
 });
+test("Instance pack without definition call", () => {
+    index_1.Packer.clear();
+    class Text {
+        constructor(val) {
+            this.val = val;
+        }
+        pack() {
+            return { val: this.val };
+        }
+        unpack(data) {
+            this.val += data.val + "b";
+        }
+    }
+    class Model {
+        constructor() {
+            this.text = new Text("a");
+        }
+    }
+    const m = new Model();
+    const b = index_1.Packer.pack(m);
+    m.text.val = "h";
+    const m2 = index_1.Packer.unpack(b);
+    // unpack is not called, as this wasn't a definition call
+    expect(m2.text.val).toBe("a");
+    // different instance
+    expect(m2.text != m.text).toBeTruthy();
+});
+test("Instance pack same reference", () => {
+    index_1.Packer.clear();
+    class Text {
+        constructor(val) {
+            this.val = val;
+        }
+        pack() {
+            return { val: this.val };
+        }
+        unpack(data) {
+            this.val += data.val + "b";
+        }
+    }
+    class Model {
+        constructor() {
+            this.text = new Text("a");
+        }
+    }
+    const m = new Model();
+    const b = index_1.Packer.pack(m);
+    const m2 = index_1.Packer.restore(b, m);
+    expect(m2.text.val).toBe("aab");
+    // same instance
+    expect(m2.text == m.text).toBeTruthy();
+});
+test("Instance pack complex", () => {
+    index_1.Packer.clear();
+    class Val {
+        constructor(val) {
+            this.val = val;
+        }
+        pack() {
+            return { val: this.val };
+        }
+        unpack(data) {
+            this.val += data.val + "b";
+        }
+    }
+    class Text {
+        constructor(val) {
+            this.val = val;
+        }
+        pack() {
+            return { val: this.val };
+        }
+        unpack(data) {
+            this.val += data.val + "b";
+        }
+    }
+    class Sample {
+        constructor() {
+            this.val = "b";
+        }
+    }
+    class Model {
+        constructor() {
+            this.text = new Text("a");
+            this.list = [new Val("a")];
+            this.name = "a";
+            this.sample = new Sample();
+        }
+    }
+    const m = new Model();
+    const b = index_1.Packer.pack(m);
+    m.sample.val = "a";
+    const m2 = index_1.Packer.restore(b, m);
+    expect(m2.text.val).toBe("aab");
+    expect(m2.list[0].val).toBe("aab");
+    // same instance
+    expect(m2.text == m.text).toBeTruthy();
+    expect(m2.sample.val).toBe("b");
+});
 //# sourceMappingURL=test.spec.js.map

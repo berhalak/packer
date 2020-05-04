@@ -154,8 +154,35 @@ export class Packer {
     }
 
 
+    static restore<T>(model: any, definition: T): T {
+        if (Array.isArray(definition)) {
+            for (let i = 0; i < definition.length; i++) {
+                definition[i] = this.restore(model[i], definition[i])
+            }
+            return definition;
+
+        } else if (isObject(definition)) {
+            const obj = definition as any;
+
+            if (typeof obj.unpack == 'function') {
+                obj.unpack(model);
+                return obj;
+            }
+
+            for (let key in obj) {
+                let is = obj[key];
+                obj[key] = this.restore(model[key], is);
+            }
+
+            return obj;
+
+        } else {
+            return model;
+        }
+    }
 
     static unpack<T>(model: any, def?: T): T {
+
         if (isObject(model)) {
             let data = def || {};
             const typeName = model.$type;
@@ -180,11 +207,7 @@ export class Packer {
             }
             const ctr = registry[typeName];
             if (ctr) {
-                if (ctr.prototype.unpack) {
-                    let obj = Object.create(ctr.prototype);
-                    obj.unpack(model);
-                    return obj;
-                } else if (ctr.unpack) {
+                if (ctr.unpack) {
                     let obj = ctr.unpack(model);
                     return obj;
                 } else {

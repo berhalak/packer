@@ -253,3 +253,120 @@ test("Child failure", () => {
     expect(p2.child.toString()).toBe("john");
     expect(ok).toBeTruthy();
 })
+
+test("Instance pack without definition call", () => {
+    Packer.clear();
+
+    class Text {
+        constructor(public val: string) {
+
+        }
+
+        pack() {
+            return { val: this.val }
+        }
+
+        unpack(data: { val: string }) {
+            this.val += data.val + "b";
+        }
+    }
+
+    class Model {
+        text = new Text("a");
+    }
+
+    const m = new Model();
+    const b = Packer.pack(m);
+    m.text.val = "h";
+    const m2 = Packer.unpack(b) as Model;
+
+    // unpack is not called, as this wasn't a definition call
+    expect(m2.text.val).toBe("a");
+    // different instance
+    expect(m2.text != m.text).toBeTruthy();
+})
+
+test("Instance pack same reference", () => {
+    Packer.clear();
+
+    class Text {
+        constructor(public val: string) {
+
+        }
+
+        pack() {
+            return { val: this.val }
+        }
+
+        unpack(data: { val: string }) {
+            this.val += data.val + "b";
+        }
+    }
+
+    class Model {
+        text = new Text("a");
+    }
+
+    const m = new Model();
+    const b = Packer.pack(m);
+    const m2 = Packer.restore(b, m);
+
+    expect(m2.text.val).toBe("aab");
+    // same instance
+    expect(m2.text == m.text).toBeTruthy();
+})
+
+test("Instance pack complex", () => {
+    Packer.clear();
+
+    class Val {
+        constructor(public val: string) {
+
+        }
+
+        pack() {
+            return { val: this.val }
+        }
+
+        unpack(data: { val: string }) {
+            this.val += data.val + "b";
+        }
+    }
+
+    class Text {
+        constructor(public val: string) {
+
+        }
+
+        pack() {
+            return { val: this.val }
+        }
+
+        unpack(data: { val: string }) {
+            this.val += data.val + "b";
+        }
+    }
+
+    class Sample {
+        val = "b";
+    }
+
+    class Model {
+        text = new Text("a");
+        list = [new Val("a")]
+        name = "a";
+        sample = new Sample();
+    }
+
+    const m = new Model();
+    const b = Packer.pack(m);
+    m.sample.val = "a";
+    const m2 = Packer.restore(b, m) as Model;
+
+    expect(m2.text.val).toBe("aab");
+    expect(m2.list[0].val).toBe("aab");
+    // same instance
+    expect(m2.text == m.text).toBeTruthy();
+
+    expect(m2.sample.val).toBe("b");
+})
