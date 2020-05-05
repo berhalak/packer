@@ -155,8 +155,8 @@ export class Packer {
 
 
 	static restore<T>(model: any, definition: T): T {
-		if (Array.isArray(definition)) {
-			for (let i = 0; i < definition.length; i++) {
+		if (Array.isArray(model)) {
+			for (let i = 0; i < model.length; i++) {
 				definition[i] = this.restore(model[i], definition[i])
 			}
 			return definition;
