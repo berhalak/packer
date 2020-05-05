@@ -152,7 +152,12 @@ class Packer {
             }
             for (let key in obj) {
                 let is = obj[key];
-                obj[key] = this.restore(model[key], is);
+                if (is == null || is === undefined) {
+                    obj[key] = this.unpack(model[key]);
+                }
+                else {
+                    obj[key] = this.restore(model[key], is);
+                }
             }
             return obj;
         }
