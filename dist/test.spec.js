@@ -27,17 +27,20 @@ test("Simple class test", () => {
 });
 test("Type attribute", () => {
     index_1.Packer.clear();
-    let Version1 = class Version1 {
-        constructor(name) {
-            this.name = name;
-        }
-        say() {
-            return "Hello " + this.name;
-        }
-    };
-    Version1 = __decorate([
-        index_1.pack("version1")
-    ], Version1);
+    let Version1 = /** @class */ (() => {
+        let Version1 = class Version1 {
+            constructor(name) {
+                this.name = name;
+            }
+            say() {
+                return "Hello " + this.name;
+            }
+        };
+        Version1 = __decorate([
+            index_1.pack("version1")
+        ], Version1);
+        return Version1;
+    })();
     let v1 = new Version1("John");
     let packed_v1 = index_1.Packer.pack(v1);
     let unpacked_v1 = index_1.Packer.unpack(packed_v1);
@@ -50,17 +53,20 @@ test("Type attribute", () => {
     }
 });
 test("Ignore attribute", () => {
-    class Model {
-        constructor() {
-            this.name = 'a';
+    let Model = /** @class */ (() => {
+        class Model {
+            constructor() {
+                this.name = 'a';
+            }
+            hello() {
+                return this.name;
+            }
         }
-        hello() {
-            return this.name;
-        }
-    }
-    __decorate([
-        index_1.ignore
-    ], Model.prototype, "name", void 0);
+        __decorate([
+            index_1.ignore
+        ], Model.prototype, "name", void 0);
+        return Model;
+    })();
     const m = index_1.Packer.clone(new Model());
     if (m.hello() == 'a')
         throw new Error("Ignore doesn't work");

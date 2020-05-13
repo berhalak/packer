@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Packer = exports.PackerLogger = exports.ignore = exports.pack = void 0;
 function isObject(model) {
     return model && typeof model == 'object' && !Array.isArray(model);
 }
@@ -20,20 +21,23 @@ function ignore(target, prop) {
 }
 exports.ignore = ignore;
 const version = "2.0.8";
-class PackerLogger {
-    static print() {
-        console.log("Types registered in Packer:" + version);
-        for (let key in registry) {
-            console.log(`${key} is registered to:`);
-            console.log(registry[key]);
-        }
-        if (Object.keys(registry).length == 0) {
-            console.log("No types registered");
+let PackerLogger = /** @class */ (() => {
+    class PackerLogger {
+        static print() {
+            console.log("Types registered in Packer:" + version);
+            for (let key in registry) {
+                console.log(`${key} is registered to:`);
+                console.log(registry[key]);
+            }
+            if (Object.keys(registry).length == 0) {
+                console.log("No types registered");
+            }
         }
     }
-}
+    PackerLogger.debug = false;
+    return PackerLogger;
+})();
 exports.PackerLogger = PackerLogger;
-PackerLogger.debug = false;
 let registry = {};
 console.debug(`Packer ${version} started`);
 class Packer {
