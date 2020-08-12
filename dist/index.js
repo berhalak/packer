@@ -21,25 +21,50 @@ function ignore(target, prop) {
 }
 exports.ignore = ignore;
 const version = "2.0.8";
-let PackerLogger = /** @class */ (() => {
-    class PackerLogger {
-        static print() {
-            console.log("Types registered in Packer:" + version);
-            for (let key in registry) {
-                console.log(`${key} is registered to:`);
-                console.log(registry[key]);
-            }
-            if (Object.keys(registry).length == 0) {
-                console.log("No types registered");
-            }
+class PackerLogger {
+    static print() {
+        console.log("Types registered in Packer:" + version);
+        for (let key in registry) {
+            console.log(`${key} is registered to:`);
+            console.log(registry[key]);
+        }
+        if (Object.keys(registry).length == 0) {
+            console.log("No types registered");
         }
     }
-    PackerLogger.debug = false;
-    return PackerLogger;
-})();
+}
 exports.PackerLogger = PackerLogger;
+PackerLogger.debug = false;
 let registry = {};
 console.debug(`Packer ${version} started`);
+class ModelRegister {
+    constructor() {
+        this._map = new Map();
+        this._unpackMap = new Map();
+    }
+    getById(model) {
+        return this._unpackMap.get(model);
+    }
+    was(model) {
+        return this._unpackMap.has(model);
+    }
+    remember(model, data) {
+        if (model['/#PackerId#/'] !== undefined) {
+            this._unpackMap.set(model['/#PackerId#/'], data);
+        }
+    }
+    has(model) {
+        return this._map.has(model);
+    }
+    getId(model) {
+        let entry = this._map.get(model);
+        entry.packed['/#PackerId#/'] = entry.id;
+        return entry.id;
+    }
+    set(model, packed) {
+        this._map.set(model, { id: `/#PackerId:${this._map.size}#/`, packed });
+    }
+}
 class Packer {
     static clone(model) {
         return this.unpack(this.pack(model));
@@ -48,12 +73,17 @@ class Packer {
         registry = {};
     }
     static pack(model) {
+        return this._pack(model);
+    }
+    static _pack(model, stack = null) {
         if (!model) {
             return null;
         }
+        // if this is already packed
         if (model.$type) {
             return model;
         }
+        stack = stack !== null && stack !== void 0 ? stack : new ModelRegister();
         const type = this.register(model);
         if (type == 'Date') {
             return {
@@ -78,13 +108,19 @@ class Packer {
         const ignores = this.ignores(model);
         let packed = {};
         if (isObject(model)) {
+            if (stack.has(model)) {
+                return stack.getId(model);
+            }
             if (typeof model.pack == 'function') {
                 packed = model.pack();
+                stack.set(model, packed);
             }
             else if (model.constructor && typeof model.constructor.pack == 'function') {
                 packed = model.constructor.pack(model);
+                stack.set(model, packed);
             }
             else {
+                stack.set(model, packed);
                 for (let key in model) {
                     if (key.startsWith('$'))
                         continue;
@@ -94,19 +130,20 @@ class Packer {
                     packed[key] = model[key];
                 }
                 for (let key in packed) {
-                    packed[key] = this.pack(packed[key]);
+                    packed[key] = this._pack(packed[key], stack);
                 }
             }
             if (type != Object.name && type)
                 packed['$type'] = type;
+            return packed;
         }
         else if (Array.isArray(model)) {
-            packed = model.map(x => this.pack(x));
+            packed = model.map(x => this._pack(x, stack));
+            return packed;
         }
         else {
             return model;
         }
-        return packed;
     }
     static ignores(model) {
         var _a;
@@ -170,6 +207,10 @@ class Packer {
         }
     }
     static unpack(model, def) {
+        return this._unpack(model, def);
+    }
+    static _unpack(model, def, stack = null) {
+        stack = stack !== null && stack !== void 0 ? stack : new ModelRegister();
         if (isObject(model)) {
             let data = def || {};
             const typeName = model.$type;
@@ -177,20 +218,27 @@ class Packer {
                 return model;
             }
             if (typeName == 'Object') {
-                return model;
+                let data = {};
+                stack.remember(model, data);
+                for (let key in model) {
+                    if (key != '$type') {
+                        data[key] = this._unpack(model[key], null, stack);
+                    }
+                }
+                return data;
             }
             if (typeName == "Date") {
                 const date = new Date(model.id);
                 return date;
             }
             else if (typeName == "Set") {
-                const set = new Set(model.values.map(x => Packer.unpack(x)));
+                const set = new Set(model.values.map(x => Packer._unpack(x, null, stack)));
                 return set;
             }
             else if (typeName == "Map") {
                 const set = new Map();
                 for (let i = 0; i < model.keys.length; i++) {
-                    set.set(model.keys[i], model.values[i]);
+                    set.set(model.keys[i], Packer._unpack(model.values[i], null, stack));
                 }
                 return set;
             }
@@ -201,9 +249,10 @@ class Packer {
                     return obj;
                 }
                 else {
+                    stack.remember(model, data);
                     for (let key in model) {
                         if (key != '$type') {
-                            data[key] = this.unpack(model[key]);
+                            data[key] = this._unpack(model[key], null, stack);
                         }
                     }
                     Object.setPrototypeOf(data, ctr.prototype);
@@ -219,7 +268,12 @@ class Packer {
             }
         }
         else if (model && Array.isArray(model)) {
-            return model.map(x => this.unpack(x));
+            return model.map(x => this._unpack(x, null, stack));
+        }
+        if (typeof model == 'string') {
+            if (stack.was(model)) {
+                return stack.getById(model);
+            }
         }
         return model;
     }

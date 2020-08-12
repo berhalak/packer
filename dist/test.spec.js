@@ -27,20 +27,17 @@ test("Simple class test", () => {
 });
 test("Type attribute", () => {
     index_1.Packer.clear();
-    let Version1 = /** @class */ (() => {
-        let Version1 = class Version1 {
-            constructor(name) {
-                this.name = name;
-            }
-            say() {
-                return "Hello " + this.name;
-            }
-        };
-        Version1 = __decorate([
-            index_1.pack("version1")
-        ], Version1);
-        return Version1;
-    })();
+    let Version1 = class Version1 {
+        constructor(name) {
+            this.name = name;
+        }
+        say() {
+            return "Hello " + this.name;
+        }
+    };
+    Version1 = __decorate([
+        index_1.pack("version1")
+    ], Version1);
     let v1 = new Version1("John");
     let packed_v1 = index_1.Packer.pack(v1);
     let unpacked_v1 = index_1.Packer.unpack(packed_v1);
@@ -53,20 +50,17 @@ test("Type attribute", () => {
     }
 });
 test("Ignore attribute", () => {
-    let Model = /** @class */ (() => {
-        class Model {
-            constructor() {
-                this.name = 'a';
-            }
-            hello() {
-                return this.name;
-            }
+    class Model {
+        constructor() {
+            this.name = 'a';
         }
-        __decorate([
-            index_1.ignore
-        ], Model.prototype, "name", void 0);
-        return Model;
-    })();
+        hello() {
+            return this.name;
+        }
+    }
+    __decorate([
+        index_1.ignore
+    ], Model.prototype, "name", void 0);
     const m = index_1.Packer.clone(new Model());
     if (m.hello() == 'a')
         throw new Error("Ignore doesn't work");
@@ -335,5 +329,27 @@ test("Instance pack complex", () => {
     // same instance
     expect(m2.text == m.text).toBeTruthy();
     expect(m2.sample.val).toBe("b");
+});
+test('Recursion', () => {
+    index_1.Packer.clear();
+    class Parent {
+        constructor() {
+            this.child = [];
+        }
+    }
+    class Child {
+        constructor() {
+            this.parent = null;
+            this.child = null;
+        }
+    }
+    let p = new Parent();
+    let c = new Child();
+    c.parent = p;
+    c.child = c;
+    p.child.push(c);
+    let clone = index_1.Packer.clone(p);
+    expect(clone).toBe(clone.child[0].parent);
+    expect(clone.child[0]).toBe(clone.child[0].child);
 });
 //# sourceMappingURL=test.spec.js.map
