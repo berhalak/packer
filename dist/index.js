@@ -4,10 +4,11 @@ exports.Packer = exports.PackerLogger = exports.ignore = exports.pack = void 0;
 function isObject(model) {
     return model && typeof model == 'object' && !Array.isArray(model);
 }
+const marker = '$type';
 function pack(name) {
     return function (target) {
         if (name) {
-            target['$type'] = typeof name == 'string' ? name : name.name;
+            target[marker] = typeof name == 'string' ? name : name.name;
         }
         Packer.register(target);
     };
@@ -20,7 +21,7 @@ function ignore(target, prop) {
     target[IGNORES][prop] = true;
 }
 exports.ignore = ignore;
-const version = "2.0.8";
+const version = "3.0.1";
 class PackerLogger {
     static print() {
         console.log("Types registered in Packer:" + version);
@@ -80,7 +81,7 @@ class Packer {
             return null;
         }
         // if this is already packed
-        if (model.$type) {
+        if (model[marker]) {
             return model;
         }
         stack = stack !== null && stack !== void 0 ? stack : new ModelRegister();
@@ -88,13 +89,13 @@ class Packer {
         if (type == 'Date') {
             return {
                 id: model.toISOString(),
-                $type: 'Date'
+                [marker]: 'Date'
             };
         }
         if (type == 'Set') {
             return {
                 values: [...model.values()].map(x => Packer.pack(x)),
-                $type: 'Set'
+                [marker]: 'Set'
             };
         }
         if (type == 'Map') {
@@ -102,7 +103,7 @@ class Packer {
             const map = model;
             dict.keys = [...map.keys()].map(x => Packer.pack(x));
             dict.values = [...map.values()].map(x => Packer.pack(x));
-            dict['$type'] = 'Map';
+            dict[marker] = 'Map';
             return dict;
         }
         const ignores = this.ignores(model);
@@ -134,7 +135,7 @@ class Packer {
                 }
             }
             if (type != Object.name && type)
-                packed['$type'] = type;
+                packed[marker] = type;
             return packed;
         }
         else if (Array.isArray(model)) {
@@ -164,8 +165,8 @@ class Packer {
         }
         if (typeof model == 'function') {
             let type = model.name;
-            if (model['$type']) {
-                type = model['$type'];
+            if (model[marker]) {
+                type = model[marker];
             }
             if (registry[type] !== model && PackerLogger.debug) {
                 console.debug(`[Packer] Registering type ${type}`);
@@ -213,7 +214,7 @@ class Packer {
         stack = stack !== null && stack !== void 0 ? stack : new ModelRegister();
         if (isObject(model)) {
             let data = def || {};
-            const typeName = model.$type;
+            const typeName = model[marker];
             if (typeName === undefined) {
                 return model;
             }
@@ -221,7 +222,7 @@ class Packer {
                 let data = {};
                 stack.remember(model, data);
                 for (let key in model) {
-                    if (key != '$type') {
+                    if (key != marker) {
                         data[key] = this._unpack(model[key], null, stack);
                     }
                 }
@@ -251,7 +252,7 @@ class Packer {
                 else {
                     stack.remember(model, data);
                     for (let key in model) {
-                        if (key != '$type') {
+                        if (key != marker) {
                             data[key] = this._unpack(model[key], null, stack);
                         }
                     }

@@ -2,12 +2,14 @@ function isObject(model: any) {
 	return model && typeof model == 'object' && !Array.isArray(model);
 }
 
+const marker = '$type';
+
 type NameLike = string | { name: string };
 
 export function pack(name?: NameLike) {
 	return function (target: any) {
 		if (name) {
-			target['$type'] = typeof name == 'string' ? name : name.name;
+			target[marker] = typeof name == 'string' ? name : name.name;
 		}
 		Packer.register(target);
 	}
@@ -22,7 +24,7 @@ export function ignore(target: any, prop: string) {
 }
 
 export type Packed<T> = any;
-const version = "2.0.8";
+const version = "3.0.1";
 export class PackerLogger {
 	static debug = false;
 	static print() {
@@ -94,7 +96,7 @@ export class Packer {
 		}
 
 		// if this is already packed
-		if (model.$type) {
+		if (model[marker]) {
 			return model;
 		}
 
@@ -107,14 +109,14 @@ export class Packer {
 		if (type == 'Date') {
 			return {
 				id: (model as Date).toISOString(),
-				$type: 'Date'
+				[marker]: 'Date'
 			}
 		}
 
 		if (type == 'Set') {
 			return {
 				values: [...(model as Set<any>).values()].map(x => Packer.pack(x)),
-				$type: 'Set'
+				[marker]: 'Set'
 			}
 		}
 
@@ -124,7 +126,7 @@ export class Packer {
 
 			dict.keys = [...map.keys()].map(x => Packer.pack(x));
 			dict.values = [...map.values()].map(x => Packer.pack(x));
-			dict['$type'] = 'Map';
+			dict[marker] = 'Map';
 
 			return dict;
 		}
@@ -164,7 +166,7 @@ export class Packer {
 				}
 			}
 			if (type != Object.name && type)
-				packed['$type'] = type;
+				packed[marker] = type;
 
 			return packed;
 		} else if (Array.isArray(model)) {
@@ -194,8 +196,8 @@ export class Packer {
 		}
 		if (typeof model == 'function') {
 			let type: string = model.name;
-			if (model['$type']) {
-				type = model['$type'];
+			if (model[marker]) {
+				type = model[marker];
 			}
 			if (registry[type] !== model && PackerLogger.debug) {
 				console.debug(`[Packer] Registering type ${type}`);
@@ -252,7 +254,7 @@ export class Packer {
 
 
 			let data = def || {};
-			const typeName = model.$type;
+			const typeName = model[marker];
 			if (typeName === undefined) {
 
 				return model;
@@ -262,7 +264,7 @@ export class Packer {
 				stack.remember(model, data);
 
 				for (let key in model) {
-					if (key != '$type') {
+					if (key != marker) {
 						data[key] = this._unpack(model[key], null, stack);
 					}
 				}
@@ -291,7 +293,7 @@ export class Packer {
 					stack.remember(model, data);
 
 					for (let key in model) {
-						if (key != '$type') {
+						if (key != marker) {
 							data[key] = this._unpack(model[key], null, stack);
 						}
 					}

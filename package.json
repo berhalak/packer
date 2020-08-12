@@ -1,6 +1,6 @@
 {
 	"name": "packer-js",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"description": "Javascript object serializer",
 	"main": "dist/index.js",
 	"private": false,
