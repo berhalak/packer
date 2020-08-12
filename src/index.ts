@@ -41,6 +41,38 @@ let registry: any = {};
 
 console.debug(`Packer ${version} started`);
 
+
+class ModelRegister {
+	getById(model: string): any {
+		return this._unpackMap.get(model);
+	}
+	was(model: string): boolean {
+		return this._unpackMap.has(model);
+	}
+	remember(model: any, data: any) {
+		if (model['/#PackerId#/'] !== undefined) {
+			this._unpackMap.set(model['/#PackerId#/'], data);
+		}
+	}
+
+	private _map = new Map<any, { id: string, packed: any }>();
+	private _unpackMap = new Map<string, any>();
+
+	has(model: any) {
+		return this._map.has(model);
+	}
+
+	getId(model: any) {
+		let entry = this._map.get(model);
+		entry.packed['/#PackerId#/'] = entry.id;
+		return entry.id;
+	}
+
+	set(model: any, packed: any) {
+		this._map.set(model, { id: `/#PackerId:${this._map.size}#/`, packed });
+	}
+}
+
 export class Packer {
 
 	static clone<T>(model: T): T {
@@ -52,14 +84,23 @@ export class Packer {
 	}
 
 	static pack(model: any): any {
+		return this._pack(model);
+	}
+
+	private static _pack(model: any, stack: ModelRegister = null): any {
 
 		if (!model) {
 			return null;
 		}
 
+		// if this is already packed
 		if (model.$type) {
 			return model;
 		}
+
+		stack = stack ?? new ModelRegister();
+
+
 
 		const type = this.register(model);
 
@@ -93,11 +134,23 @@ export class Packer {
 		let packed: any = {};
 
 		if (isObject(model)) {
+
+			if (stack.has(model)) {
+				return stack.getId(model);
+			}
+
 			if (typeof model.pack == 'function') {
 				packed = model.pack();
+				stack.set(model, packed);
+
 			} else if (model.constructor && typeof model.constructor.pack == 'function') {
 				packed = model.constructor.pack(model);
+				stack.set(model, packed);
+
 			} else {
+
+				stack.set(model, packed);
+
 				for (let key in model) {
 					if (key.startsWith('$'))
 						continue;
@@ -107,18 +160,20 @@ export class Packer {
 					packed[key] = model[key];
 				}
 				for (let key in packed) {
-					packed[key] = this.pack(packed[key]);
+					packed[key] = this._pack(packed[key], stack);
 				}
 			}
 			if (type != Object.name && type)
 				packed['$type'] = type;
+
+			return packed;
 		} else if (Array.isArray(model)) {
-			packed = (model as Array<any>).map(x => this.pack(x));
+			packed = (model as Array<any>).map(x => this._pack(x, stack));
+			return packed;
 		} else {
 			return model;
 		}
 
-		return packed;
 	}
 
 	static ignores(model: any): any {
@@ -186,38 +241,58 @@ export class Packer {
 	}
 
 	static unpack<T>(model: any, def?: T): T {
+		return this._unpack<T>(model, def);
+	}
+
+	private static _unpack<T>(model: any, def?: T, stack: ModelRegister = null): T {
+
+		stack = stack ?? new ModelRegister();
 
 		if (isObject(model)) {
+
+
 			let data = def || {};
 			const typeName = model.$type;
 			if (typeName === undefined) {
+
 				return model;
 			}
 			if (typeName == 'Object') {
-				return model;
+				let data = {};
+				stack.remember(model, data);
+
+				for (let key in model) {
+					if (key != '$type') {
+						data[key] = this._unpack(model[key], null, stack);
+					}
+				}
+				return data as T;
 			}
 			if (typeName == "Date") {
 				const date = new Date(model.id);
 				return date as any;
 			} else if (typeName == "Set") {
-				const set = new Set(model.values.map(x => Packer.unpack(x)));
+				const set = new Set(model.values.map(x => Packer._unpack(x, null, stack)));
 				return set as any;
 			} else if (typeName == "Map") {
 				const set = new Map<any, any>();
 				for (let i = 0; i < model.keys.length; i++) {
-					set.set(model.keys[i], model.values[i]);
+					set.set(model.keys[i], Packer._unpack(model.values[i], null, stack));
 				}
 				return set as any;
 			}
 			const ctr = registry[typeName];
 			if (ctr) {
+
 				if (ctr.unpack) {
 					let obj = ctr.unpack(model);
 					return obj;
 				} else {
+					stack.remember(model, data);
+
 					for (let key in model) {
 						if (key != '$type') {
-							data[key] = this.unpack(model[key]);
+							data[key] = this._unpack(model[key], null, stack);
 						}
 					}
 					Object.setPrototypeOf(data, ctr.prototype);
@@ -231,7 +306,13 @@ export class Packer {
 				throw new Error(`Type ${typeName} is not registered`);
 			}
 		} else if (model && Array.isArray(model)) {
-			return (model as any[]).map(x => this.unpack(x)) as any;
+			return (model as any[]).map(x => this._unpack(x, null, stack)) as any;
+		}
+
+		if (typeof model == 'string') {
+			if (stack.was(model)) {
+				return stack.getById(model);
+			}
 		}
 
 		return model as T;

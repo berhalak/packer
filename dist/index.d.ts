@@ -12,10 +12,12 @@ export declare class Packer {
     static clone<T>(model: T): T;
     static clear(): void;
     static pack(model: any): any;
+    private static _pack;
     static ignores(model: any): any;
     static register(model: any): string;
     static restore<T>(model: any, definition: T): T;
     static unpack<T>(model: any, def?: T): T;
+    private static _unpack;
     static serialize(model: any): string;
     static deserialize<T>(json: string): T;
 }
