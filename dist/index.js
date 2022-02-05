@@ -37,7 +37,6 @@ class PackerLogger {
 exports.PackerLogger = PackerLogger;
 PackerLogger.debug = false;
 let registry = {};
-console.debug(`Packer ${version} started`);
 class ModelRegister {
     constructor() {
         this._map = new Map();

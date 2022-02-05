@@ -36,7 +36,7 @@ test("Type attribute", () => {
         }
     };
     Version1 = __decorate([
-        index_1.pack("version1")
+        (0, index_1.pack)("version1")
     ], Version1);
     let v1 = new Version1("John");
     let packed_v1 = index_1.Packer.pack(v1);

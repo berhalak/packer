@@ -41,7 +41,6 @@ export class PackerLogger {
 
 let registry: any = {};
 
-console.debug(`Packer ${version} started`);
 
 
 class ModelRegister {
